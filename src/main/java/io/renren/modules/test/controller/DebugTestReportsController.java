@@ -10,8 +10,14 @@ import io.renren.modules.test.service.DebugTestReportsService;
 import io.renren.modules.test.utils.StressTestUtils;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -104,7 +110,27 @@ public class DebugTestReportsController {
     /**
      * 下载测试报告
      */
+    @SysLog("下载调试测试报告")
+    @RequestMapping("/downloadReport/{reportId}")
+    @RequiresPermissions("test:debug:reportDownload")
+    public ResponseEntity<InputStreamResource> downloadReport(@PathVariable("reportId") Long reportId) throws IOException {
+        DebugTestReportsEntity reportsEntity = debugTestReportsService.queryObject(reportId);
+        FileSystemResource fileResource = debugTestReportsService.getReportFile(reportsEntity);
 
-    //TODO 待完成downloadReport方法
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Cache-Control", "no-cache,no-store,must-revalidate");
+        headers.add("Content-Disposition",
+                "attachment;filename=" + reportsEntity.getOriginName() + ".html");
+        headers.add("Pragma", "no-cache");
+        headers.add("Expires", "0");
+        headers.setContentType(MediaType.parseMediaType("application/octest-stream"));
+
+        return ResponseEntity
+                .ok()
+                .headers(headers)
+                .contentLength(fileResource.contentLength())
+                .body(new InputStreamResource(fileResource.getInputStream()));
+    }
+
 
 }
