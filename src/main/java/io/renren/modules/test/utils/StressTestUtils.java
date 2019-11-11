@@ -154,10 +154,14 @@ public class StressTestUtils {
     }
 
     public boolean isMasterGenerateReport() {
-        return Boolean.parseBoolean(sysConfigService.getValue(JMETER_THREADGROUP_SET_KEY));
+        return Boolean.parseBoolean(sysConfigService.getValue(MASTER_JMETER_GENERATE_REPORT_KEY));
     }
 
     public boolean isGetThreadGroup() {
+        return Boolean.parseBoolean(sysConfigService.getValue(JMETER_THREADGROUP_SET_KEY));
+    }
+
+    public boolean isScriptSchedulerDurationEffect() {
         return Boolean.parseBoolean(sysConfigService.getValue(SCRIPT_SCHEDULER_DURATION_KEY));
     }
 
