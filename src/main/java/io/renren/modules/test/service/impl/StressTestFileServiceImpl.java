@@ -5,6 +5,7 @@ import io.renren.modules.test.dao.*;
 import io.renren.modules.test.entity.*;
 import io.renren.modules.test.handler.FileExecuteResultHandler;
 import io.renren.modules.test.handler.FileResultHandler;
+import io.renren.modules.test.handler.FileStopResultHandler;
 import io.renren.modules.test.jmeter.JmeterListenToTest;
 import io.renren.modules.test.jmeter.JmeterResultCollector;
 import io.renren.modules.test.jmeter.JmeterRunEntity;
@@ -18,7 +19,6 @@ import io.renren.modules.test.utils.StressTestUtils;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
-import org.apache.commons.exec.ExecuteException;
 import org.apache.commons.exec.PumpStreamHandler;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
@@ -26,7 +26,6 @@ import org.apache.jmeter.JMeter;
 import org.apache.jmeter.config.CSVDataSet;
 import org.apache.jmeter.engine.JMeterEngine;
 import org.apache.jmeter.engine.JMeterEngineException;
-import org.apache.jmeter.gui.tree.JMeterTreeListener;
 import org.apache.jmeter.save.SaveService;
 import org.apache.jmeter.services.FileServer;
 import org.apache.jmeter.threads.RemoteThreadsListenerTestElement;
@@ -837,8 +836,154 @@ public class StressTestFileServiceImpl implements StressTestFileService {
             return;
         }
 
-        //TODO  //上传文件
+        //上传文件
+        ssh2Util.scpPutFile(filePath,caseFileHome);
+
+        stressTestFile.setStatus(StressTestUtils.RUN_SUCCESS);
+        //由于事务性，这个地方不好批量更新。
+        update(stressTestFile);
+        Map fileQuery = new HashMap<>();
+        fileQuery.put("originName",stressTestFile.getOriginName() + "_slavedId" + slave.getSlaveId());
+        fileQuery.put("slaveId",slave.getSlaveId().toString());
+        StressTestFileEntity newStressTestFile = stressTestFileDao.queryObjectForClone(fileQuery);
+        if (newStressTestFile == null) {
+            newStressTestFile = stressTestFile.clone();
+            newStressTestFile.setStatus(-1);
+            newStressTestFile.setFileName(getSlaveFileName(stressTestFile,slave));
+            newStressTestFile.setOriginName(stressTestFile.getOriginName() + "_slaveId" + slave.getSlaveId());
+            newStressTestFile.setFileMd5(fileSaveMD5);
+            //最重要是保存分布式子节点的ID
+            newStressTestFile.setSlaveId(slave.getSlaveId());
+            save(stressTestFile);
+        } else {
+            newStressTestFile.setFileMd5(fileSaveMD5);
+            update(newStressTestFile);
+        }
+
     }
 
+    /**
+     * 根据fileId 删除对应的slave节点的文件。
+     */
+    public void deleteSlaveFile(Long fileId) {
+        StressTestFileEntity stressTestFile = queryObject(fileId);
+        // 获取参数化文件同步到哪些分布式子节点的记录
+        Map fileQuery = new HashMap<>();
+        fileQuery.put("originName", stressTestFile.getOriginName() + "_slaveId");
+        List<StressTestFileEntity> fileDeleteList = stressTestFileDao.queryListForDelete(fileQuery);
 
+        if (fileDeleteList.isEmpty()) {
+            return;
+        }
+        // 将同步过的分布式子节点的ID收集起来，用于查询子节点对象集合。
+        String slaveIds = "";
+        ArrayList fileDeleteIds = new ArrayList();
+        for (StressTestFileEntity stressTestFile4Slave : fileDeleteList) {
+            if (stressTestFile4Slave.getSlaveId() == null) {
+                continue;
+            }
+            if (slaveIds.isEmpty()) {
+                slaveIds = stressTestFile4Slave.getSlaveId().toString();
+            } else {
+                slaveIds += " , " + stressTestFile4Slave.getSlaveId().toString();
+            }
+            fileDeleteIds.add(stressTestFile4Slave.getFileId());
+        }
+
+        if (slaveIds.isEmpty()) {
+            return;
+        }
+
+        // 每一个参数化文件，会对应多个同步子节点slave的记录。
+        Map slaveQuery = new HashMap<>();
+        slaveQuery.put("slaveIds", slaveIds);
+        // 每一个被同步过的记录，都要执行删除操作。
+        List<StressTestSlaveEntity> stressTestSlaveList = stressTestSlaveDao.queryList(slaveQuery);
+        for (StressTestSlaveEntity slave : stressTestSlaveList) {
+            // 跳过本地节点
+            if ("127.0.0.1".equals(slave.getIp().trim())) {
+                continue;
+            }
+
+            SSH2Utils ssh2Util = new SSH2Utils(slave.getIp(), slave.getUserName(),
+                    slave.getPasswd(), Integer.parseInt(slave.getSshPort()));
+
+            ssh2Util.runCommand("rm -f " + getSlaveFileName(stressTestFile, slave));
+        }
+
+        stressTestFileDao.deleteBatch(fileDeleteIds.toArray());
+    }
+
+    /**
+     * 获取slave节点上的参数化文件具体路径
+     */
+    public String getSlaveFileName(StressTestFileEntity stressTestFile,StressTestSlaveEntity slave) {
+        //避免跨系统的问题，远端由于都是linux服务器，则文件分隔符统一为/,不然同步文件会报错。
+        String caseFileHome = slave.getHomeDir() + "/bin/stressTestCases";
+        String fileNameUpload = stressTestFile.getOriginName();
+        return caseFileHome + "/" + fileNameUpload;
+    }
+
+    /**
+     * 拼装分布式节点，当前还没有遇到分布式节点非常多的情况。
+     * @return 分布式节点的IP地址拼装，不包含本地127.0.0.1的IP
+     */
+    public String getSlaveIPPort() {
+        Map query = new HashMap<>();
+        query.put("status",StressTestUtils.ENABLE);
+        List<StressTestSlaveEntity> stressTestSlaveList = stressTestSlaveDao.queryList(query);
+
+        StringBuilder stringBuilder = new StringBuilder();
+        for (StressTestSlaveEntity slave : stressTestSlaveList) {
+            //本级部包含在内
+            if ("127.0.0.1".equals(slave.getIp().trim())) {
+                continue;
+            }
+
+            if (stringBuilder.length() != 0) {
+                stringBuilder.append(",");
+            }
+            stringBuilder.append(slave.getIp().trim()).append(":").append(slave.getJmeterPort().trim());
+        }
+        return stringBuilder.toString();
+    }
+
+    /**
+     * master节点是否被使用为压力节点
+     */
+    public boolean checkSlaveLocal() {
+        Map query = new HashMap<>();
+        query.put("status",StressTestUtils.ENABLE);
+        List<StressTestSlaveEntity> stressTestSlaveList = stressTestSlaveDao.queryList(query);
+
+        for (StressTestSlaveEntity slave : stressTestSlaveList) {
+            //本机配置IP为127.0.0.1，没配置localhost
+            if ("127.0.0.1".equals(slave.getIp().trim())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 拼装分布式节点，当前还没有遇到分布式节点非常多的情况。
+     *
+     * @return 分布式节点的IP地址拼装，不包含本地127.0.0.1的IP
+     */
+    public Map<String,Integer> getSlaveAddrWeight() {
+        Map query = new HashMap<>();
+        query.put("status", StressTestUtils.ENABLE);
+        List<StressTestSlaveEntity> stressTestSlaveList = stressTestSlaveDao.queryList(query);
+
+        Map<String, Integer> resultMap = new HashMap<>();
+        for (StressTestSlaveEntity slave : stressTestSlaveList) {
+            //本机不包含在内
+            if ("127.0.0.1".equals(slave.getIp().trim())) {
+                continue;
+            }
+
+            resultMap.put(slave.getIp().trim() + ":" + slave.getJmeterPort().trim(),Integer.parseInt(slave.getWeight()));
+        }
+        return resultMap;
+    }
 }

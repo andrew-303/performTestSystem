@@ -7,6 +7,9 @@ import javax.validation.constraints.Pattern;
 import java.io.Serializable;
 import java.util.Date;
 
+/**
+ * 分布式节点
+ */
 public class StressTestSlaveEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;
