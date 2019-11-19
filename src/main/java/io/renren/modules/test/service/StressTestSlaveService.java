@@ -18,7 +18,7 @@ public interface StressTestSlaveService {
     /**
      * 查询子节点列表
      */
-    List<StressTestSlaveService> queryList(Map<String,Object> map);
+    List<StressTestSlaveEntity> queryList(Map<String,Object> map);
 
     /**
      * 查询总数
