@@ -1,12 +1,12 @@
 package io.renren.modules.oss.cloud;
 
-import com.aliyun.oss.model.UploadFileRequest;
 import com.qcloud.cos.COSClient;
 import com.qcloud.cos.ClientConfig;
+import com.qcloud.cos.request.UploadFileRequest;
 import com.qcloud.cos.sign.Credentials;
-import com.qiniu.util.IOUtils;
 import io.renren.common.exception.RRException;
 import net.sf.json.JSONObject;
+import org.apache.commons.io.IOUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -45,7 +45,8 @@ public class QcloudCloudStorageService extends CloudStorageService{
 
         //上传到腾讯云
         UploadFileRequest request = new UploadFileRequest(config.getQcloudBucketName(), path, data);
-        String response = client.updateFile(request);
+        String response = client.uploadFile(request);
+
         JSONObject jsonObject = JSONObject.fromObject(response);
         if (jsonObject.getInt("code") != 0) {
             throw new RRException("文件上传失败，" + jsonObject.getString("message"));

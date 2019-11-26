@@ -36,7 +36,7 @@ public class StressTestSlaveController {
     public R list(@RequestParam Map<String, Object> params) {
         //查询列表数据
         Query query = new Query(StressTestUtils.filterParms(params));
-        List<StressTestSlaveService> stressTestList = stressTestSlaveService.queryList(query);
+        List<StressTestSlaveEntity> stressTestList = stressTestSlaveService.queryList(query);
         int total = stressTestSlaveService.queryTotal(query);
 
         PageUtils pageUtil = new PageUtils(stressTestList, total, query.getLimit(), query.getPage());
