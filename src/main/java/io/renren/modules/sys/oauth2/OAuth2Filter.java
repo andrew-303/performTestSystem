@@ -16,6 +16,7 @@ import java.io.IOException;
 
 /**
  * oauth2过滤器
+ * AuthenticatingFilter：认证过滤器
  */
 public class OAuth2Filter extends AuthenticatingFilter {
 
@@ -37,15 +38,17 @@ public class OAuth2Filter extends AuthenticatingFilter {
 
     @Override
     protected boolean onAccessDenied(ServletRequest request, ServletResponse response) throws Exception {
-        //获取请求token，如果token不存在，直接返回401
+        //获取请求token，如果token不存在，直接返回401 【HttpStatus.SC_UNAUTHORIZED】
         String token = getRequestToken((HttpServletRequest) request);
         if (StringUtils.isBlank(token)) {
             HttpServletResponse httpResponse = (HttpServletResponse) response;
             String json = new Gson().toJson(R.error(HttpStatus.SC_UNAUTHORIZED, "invalid token"));
+            //将响应数据返回到前端，打印输出文本格式，可以将一个对象以默认编码方式转换为二进制字节输出
             httpResponse.getWriter().print(json);
 
             return false;
         }
+        //执行登录请求
         return executeLogin(request,response);
     }
 
