@@ -1,8 +1,6 @@
 package io.renren.modules.test.jmeter.engine;
 
-import com.sun.xml.internal.ws.policy.EffectiveAlternativeSelector;
 import io.renren.modules.test.entity.StressTestFileEntity;
-import io.renren.modules.test.jmeter.JmeterResultCollector;
 import io.renren.modules.test.jmeter.JmeterTestPlan;
 import org.apache.jmeter.JMeter;
 import org.apache.jmeter.engine.*;

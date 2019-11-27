@@ -3,7 +3,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.renren</groupId>
-    <artifactId>renren-fast</artifactId>
+    <artifactId>performance-test-system</artifactId>
     <version>5.1.1</version>
     <packaging>war</packaging>
     <description>war包对应的pom，打war包，执行【mvn clean package -f pom-war.xml】</description>

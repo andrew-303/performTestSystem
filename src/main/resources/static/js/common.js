@@ -19,7 +19,9 @@ var url = function (name) {
 T.p = url;
 
 //请求前缀
-var baseURL = "/renren-fast/";
+/*var baseURL = "/renren-fast/";*/
+var baseURL = "/perform-test/";
+//TODO 修改请求前缀
 
 //登录token
 var token = localStorage.getItem("token");
