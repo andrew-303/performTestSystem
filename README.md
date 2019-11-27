@@ -56,6 +56,7 @@ renren-fast
 - 数据库连接池：Druid 1.0
 - 日志管理：SLF4J 1.7、Log4j
 - 页面交互：Vue2.x 
+- 前端框架：AdminLTE v2
 - 前端监控：ECharts 3.8
 - 压测内核：Apache JMeter 5.1.1
 - 脚本调用内核：Apache Commons Exec 1.3
