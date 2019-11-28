@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 分布式节点管理
+ * 性能测试分布式节点管理
  */
 @RestController
 @RequestMapping("/test/stressSlave")

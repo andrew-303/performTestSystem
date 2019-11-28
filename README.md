@@ -18,6 +18,12 @@
 - 引入Echarts，支持在线观测性能压测结果。
 <br> 
 
+**renren-fast框架说明** 
+- 基于Spring、MyBatis、Shiro框架，开发的一套后台脚手架框架（权限系统）。
+- 支持分布式部署、Quartz分布式集群调度、Activiti工作流、部门管理、数据权限、云存储等功能。
+- https://www.renren.io/
+<br> 
+
 **项目结构** 
 ```
 renren-fast

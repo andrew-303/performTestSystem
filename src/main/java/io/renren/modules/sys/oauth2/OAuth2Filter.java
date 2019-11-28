@@ -36,6 +36,13 @@ public class OAuth2Filter extends AuthenticatingFilter {
         return false;
     }
 
+    /**
+     * 判断是否允许登录
+     * @param request
+     * @param response
+     * @return
+     * @throws Exception
+     */
     @Override
     protected boolean onAccessDenied(ServletRequest request, ServletResponse response) throws Exception {
         //获取请求token，如果token不存在，直接返回401 【HttpStatus.SC_UNAUTHORIZED】
