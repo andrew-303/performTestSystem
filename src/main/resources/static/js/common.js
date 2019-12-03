@@ -75,7 +75,7 @@ window.alert = function (msg, callback) {
             callback("ok");
         }
     });
-}
+};
 
 //重写confirm式样框
 window.confirm = function (msg, callback) {
@@ -85,7 +85,7 @@ window.confirm = function (msg, callback) {
                 callback("ok");
             }
         });
-}
+};
 
 //选择一条记录
 function getSelectedRow() {
@@ -128,13 +128,13 @@ function numberToArray(value) {
 
 //判断是否为合法IP地址
 function isValidIP(ip) {
-    var reg = /^(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$/
+    var reg = /^(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])\.(\d{1,2}|1\d\d|2[0-4]\d|25[0-5])$/;
     return reg.test(ip);
 }
 
 //判断是否为端口(数字)
 function isDigits(value) {
-    var reg = /^(\d{1,5})$/
+    var reg = /^(\d{1,5})$/;
     return reg.test(value);
 }
 

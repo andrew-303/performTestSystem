@@ -41,6 +41,27 @@ $(function () {
     });
 });
 
+function confirmfunc() {
+    var userIds = getSelectedRows();
+    if(userIds == null){
+        return ;
+    }
+
+    $.ajax({
+        type: "POST",
+        url: baseURL + "sys/user/delete",
+        contentType: "application/json",
+        data: JSON.stringify(userIds),
+        success: function(r){
+            if(r.code == 0){
+                alert('操作成功');
+            }else{
+                alert(r.msg);
+            }
+        }
+    });
+}
+
 var vm = new Vue({
     el:'#rrapp',
     data:{
@@ -87,7 +108,33 @@ var vm = new Vue({
                 return ;
             }
 
-            confirm('确定要删除选中的记录？', function(){
+            myConfirm('确定要删除选中的记录','取消','确定','1',function(res){
+                console.log(res);
+                if(res.status){
+                    //用户点击确定
+                    $.ajax({
+                        type: "POST",
+                        url: baseURL + "sys/user/delete",
+                        contentType: "application/json",
+                        data: JSON.stringify(userIds),
+                        success: function(r){
+                            if(r.code == 0){
+                                alert('操作成功', vm.reload());
+                            }else{
+                                alert(r.msg);
+                            }
+                        }
+                    });
+                }else {
+                    //用户点击取消
+                }
+            });
+
+            /*
+            这里不执行的问题，主要是使用common.js中重写的confirm的function()上，没有生效
+            换成myconfirm()重写的方法
+             */
+            /*confirm('确定要删除选中的记录？', function(){
                 $.ajax({
                     type: "POST",
                     url: baseURL + "sys/user/delete",
@@ -95,15 +142,13 @@ var vm = new Vue({
                     data: JSON.stringify(userIds),
                     success: function(r){
                         if(r.code == 0){
-                            alert('操作成功', function(){
-                                vm.reload();
-                            });
+                            alert('操作成功', vm.reload());
                         }else{
                             alert(r.msg);
                         }
                     }
                 });
-            });
+            });*/
         },
         saveOrUpdate: function () {
             if(vm.validator()){
@@ -118,9 +163,11 @@ var vm = new Vue({
                 data: JSON.stringify(vm.user),
                 success: function(r){
                     if(r.code === 0){
-                        alert('操作成功', function(){
+                        /*alert('操作成功!!!', function(){
+                            //这里不执行，改成直接传入vm中定义的函数vm.reload()
                             vm.reload();
-                        });
+                        });*/
+                        alert('操作成功!!!', vm.reload());
                     }else{
                         alert(r.msg);
                     }
@@ -139,8 +186,10 @@ var vm = new Vue({
             });
         },
         reload: function () {
+            alert("进入reload");
             vm.showList = true;
             var page = $("#jqGrid").jqGrid('getGridParam','page');
+
             $("#jqGrid").jqGrid('setGridParam',{
                 postData:{'username': vm.q.username},
                 page:page
