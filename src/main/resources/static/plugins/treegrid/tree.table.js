@@ -11,7 +11,7 @@
         this.method = "GET";
         this.columns = columns;
         this.data = {};// ajax的参数
-        this.expandColumn = null;// 展开显示的列
+        this.expandColumn = null;// 展开显示的列 
         this.id = 'menuId';// 选取记录返回的值
         this.code = 'menuId';// 用于设置父子关系
         this.parentCode = 'parentId';// 用于设置父子关系
@@ -79,13 +79,13 @@
          * 设置是否默认全部展开
          */
         setExpandAll: function (expandAll) {
-            this.expandAll = expandAll;
+        	this.expandAll = expandAll;
         },
         /**
          * 设置表格高度
          */
         setHeight: function (height) {
-            this.height = height;
+        	this.height = height;
         },
         /**
          * 设置ajax post请求时候附带的参数

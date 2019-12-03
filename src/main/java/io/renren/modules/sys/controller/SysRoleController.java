@@ -43,8 +43,16 @@ public class SysRoleController extends AbstractController {
         Query query = new Query(params);
         List<SysRoleEntity> list = sysRoleService.queryList(query);
         int total = sysRoleService.queryTotal(query);
+        System.out.println("角色总记录数："+  total);
+        System.out.println("角色每页记录数:" + query.getLimit());
+        System.out.println("角色当前页数："+  query.getPage());
 
         PageUtils pageUtil = new PageUtils(list, total, query.getLimit(), query.getPage());
+
+        System.out.println("转换后角色总记录数："+pageUtil.getTotalCount());
+        System.out.println("转换后角色每页记录数:" + pageUtil.getPageSize());
+        System.out.println("转换后角色当前页数："+  pageUtil.getCurrPage());
+        System.out.println("转换后总页数："+pageUtil.getTotalPage());
 
         return R.ok().put("page",pageUtil);
     }

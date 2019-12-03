@@ -3,7 +3,7 @@ To change this license header, choose License Headers in Project Properties.
 To change this template file, choose Tools | Templates
 and open the template in the editor.
 */
-/*
+/* 
     Created on : Mar 16, 2015, 10:24:01 AM
     Author     : tony
 */
@@ -13,12 +13,12 @@ and open the template in the editor.
 .ui-state-hover
 {
     border: .15em solid;
-    border-color: inherit;
+	border-color: inherit;
 
 }
 .ui-jqdialog .ui-jqdialog-titlebar  {
-    height:29px;
-    border-color: inherit;
+	height:29px;
+	border-color: inherit;
 }
 
 .ui-jqdialog-content input.FormElement {
