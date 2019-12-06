@@ -68,7 +68,7 @@ $(function () {
                 }
             },
             {
-                label: '调试',
+            	label: '调试',
                 name: 'debugStatus',
                 width: 30,
                 sortable: false,
@@ -100,7 +100,7 @@ $(function () {
                 }
             },
             {
-                label: '执行操作', name: '', width: 100, sortable: false, formatter: function (value, options, row) {
+            	label: '执行操作', name: '', width: 100, sortable: false, formatter: function (value, options, row) {
                     var btn = '';
                     if (!(getExtension(row.originName) && /^(jmx)$/.test(getExtension(row.originName).toLowerCase()))) {
                         btn = "<a href='#' class='btn btn-primary' onclick='synchronizeFile(" + row.fileId + ")' ><i class='fa fa-arrow-circle-right'></i>&nbsp;同步文件</a>";

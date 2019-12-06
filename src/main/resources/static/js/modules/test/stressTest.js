@@ -162,6 +162,8 @@ var vm = new Vue({
         },
         upload: function () {
             var caseId = getSelectedRow();
+            //TODO 1
+            console.log("caseId=" + caseId);
             if (caseId == null) {
                 return;
             }
@@ -182,7 +184,7 @@ var vm = new Vue({
             var viw = ['ftl','htm','html','jsp']; //页面
             var rol = ['js','css'];
             initFileInput('#files', baseURL + 'test/stress/upload?token=' + token,
-                img.concat(txt).concat(ott).concat(spe).concat(zat).concat(viw), {caseIds: caseId} );
+                img.concat(txt).concat(ott).concat(spe).concat(zat).concat(viw), {caseIds:caseId} );
         }
         // uploadFiles: function () {
         //     debugger
@@ -197,6 +199,56 @@ var vm = new Vue({
         // }
     }
 });
+
+/*function initFileInput(formGropId, url, fileCan) {
+    $(formGropId).fileinput({
+        theme: "explorer", //主题
+        language: 'zh', //设置语言
+        uploadUrl: url,
+        /!*uploadExtraData: function () {
+            var caseId = getSelectedRows();
+            return {caseIds:caseId};
+        },*!/
+        allowedFileExtensions: fileCan,//接收的文件后缀
+        maxFileSize: 1024 * 20 * 100,     //1024*20Kb = 20Mb
+        minFileCount: 1,
+        enctype: 'multipart/form-data',
+        showCaption: true,//是否显示标题
+        showUpload: true, //是否显示上传按钮
+        // showRemove: false, // 是否显示移除按钮
+        textEncoding: 'utf-8',
+        browseClass: "btn btn-primary", //按钮样式
+        overwriteInitial: true, //是否覆盖已存在图片
+        previewFileIcon: "<i class='glyphicon glyphicon-king'></i>",
+        //previewFileIcon: '<i class="fa fa-file"></i>',
+        //initialPreviewAsData: true, // defaults markup
+        //preferIconicPreview: false, // 是否优先显示图标  false 即优先显示图片
+        //showPreview: true, //是否显示文件的预览图
+        /!*不同文件图标配置*!/
+
+        allowedPreviewTypes: false, //不预览
+        previewSettings: {
+            image: {width: "50px", height: "60px"},
+        },
+        layoutTemplates: {
+            // actionUpload: '',   //取消上传按钮
+            // actionZoom: ''      //取消放大镜按钮
+            // actionDelete:'' //取消删除按钮
+        }
+    }).on('filepreupload', function (event, data, previewId, index) {//上传中
+        console.info(data);
+    }).on("fileuploaded", function (event, data, previewId, index) {    //一个文件上传成功
+        console.log('文件上传成功！' + data);
+        console.log('文件上传成功参数2！' + event);
+        console.log('文件上传成功参数3！' + previewId);
+        console.log('文件上传成功参数4！' + index);
+    }).on('fileerror', function (event, data, msg) {  //一个文件上传失败
+        console.log('文件上传失败！' + msg);
+    }).on('filesuccessremove', function(event, id) { //上传时和这里的删除回调时，同一个文件id相同
+        console.log('Uploaded thumbnail successfully removed');
+    });
+
+}*/
 
 function initFileInput(formGropId, url, fileCan, extraData) {
     $(formGropId).fileinput({
@@ -213,12 +265,12 @@ function initFileInput(formGropId, url, fileCan, extraData) {
         // showRemove: false, // 是否显示移除按钮
         textEncoding: 'utf-8',
         browseClass: "btn btn-primary", //按钮样式
-        overwriteInitial: true,
+        overwriteInitial: true, //是否覆盖已存在图片
         previewFileIcon: "<i class='glyphicon glyphicon-king'></i>",
         //previewFileIcon: '<i class="fa fa-file"></i>',
         //initialPreviewAsData: true, // defaults markup
         //preferIconicPreview: false, // 是否优先显示图标  false 即优先显示图片
-        //showPreview: true,
+        //showPreview: true, //是否显示文件的预览图
         /*不同文件图标配置*/
 
         allowedPreviewTypes: false, //不预览

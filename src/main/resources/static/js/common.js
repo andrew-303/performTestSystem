@@ -19,7 +19,7 @@ var url = function (name) {
 T.p = url;
 
 //请求前缀
-/*var baseURL = "/renren-fast/";*/
+// var baseURL = "/renren-fast/";
 var baseURL = "/perform-test/";
 //TODO 修改请求前缀
 
@@ -101,7 +101,8 @@ function getSelectedRow() {
         alert("只能选择一条记录");
         return;
     }
-
+    //TODO 增加日志打印
+    console.log(selectedIDs[0]);
     return selectedIDs[0];
 }
 

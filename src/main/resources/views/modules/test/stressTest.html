@@ -26,7 +26,7 @@
 <body>
 <div id="rrapp" v-cloak>
     <div v-show="showList">
-        <div class="grid-btn" style="height: 34px;">
+        <div class="grid-btn" style="height:34px;">
             <div class="form-group col-sm-2">
                 <input type="text" class="form-control" v-model="q.caseName" @keyup.enter="query" placeholder="用例名称">
             </div>
@@ -34,7 +34,7 @@
             <a v-if="hasPermission('test:stress')" class="btn btn-primary" @click="add"><i class="fa fa-plus"></i>&nbsp;新增</a>
             <a v-if="hasPermission('test:stress')" class="btn btn-primary" @click="upload"><i class="fa fa-plus"></i>&nbsp;上传文件</a>
             <a v-if="hasPermission('test:stress')" class="btn btn-primary" @click="update"><i class="fa fa-pencil-square-o"></i>&nbsp;修改</a>
-            <a v-if="hasPermission('test:stress')" class="btn btn-primary" @click="del"><i class="fa fa-trash-o"></i>删除</a>
+            <a v-if="hasPermission('test:stress')" class="btn btn-primary" @click="del"><i class="fa fa-trash-o"></i>&nbsp;删除</a>
             <!--<a v-if="hasPermission('test:stress')" class="btn btn-primary" @click="runOnce"><i class="fa fa-arrow-circle-right"></i>&nbsp;启动</a>-->
             <!--<a v-if="hasPermission('test:stress')" class="btn btn-primary" @click="stop"><i class="fa fa-stop"></i>&nbsp;停止</a>-->
             <!--<a v-if="hasPermission('test:stress')" class="btn btn-primary" @click="stopNow"><i class="fa fa-times-circle"></i>&nbsp;强制停止</a>-->
@@ -42,10 +42,9 @@
             <!--<a v-if="hasPermission('test:stress')" class="btn btn-danger" style="float:right;" href="stressTestReports.html">测试报告</a>-->
             <!--<a class="btn btn-danger" style="visibility:hidden;float:right;" href="javascript:void(0)">格式填充</a>-->
         </div>
-        <!--列表页面内容在stressTest.js-->
         <table id="jqGrid"></table>
         <div id="jqGridPager"></div>
-        <div style="text-align:center;padding-top: 16px;">(说明：请上传测试脚本及文件，要求jmx脚本所关联的附件或参数文件只设文件名，不设置路径：同一用例下如果上传同名文件即为覆盖同名文件)</div>
+        <div style="text-align:center;padding-top:16px;">（说明：请上传测试脚本及附件，要求jmx脚本所关联的附件或参数文件只设文件名，不设置路径；同一用例下如果上传同名文件既为覆盖同名文件）</div>
     </div>
 
     <div v-show="showEdit" class="panel panel-default">
@@ -54,13 +53,13 @@
             <div class="form-group">
                 <div class="col-sm-2 control-label">用例名称</div>
                 <div class="col-sm-10">
-                    <input type="text" class="form-control" v-model="stressCase.caseName" placeholder="用例名称">
+                    <input type="text" class="form-control" v-model="stressCase.caseName" placeholder="用例名称"/>
                 </div>
             </div>
             <div class="form-group">
                 <div class="col-sm-2 control-label">项目</div>
                 <div class="col-sm-10">
-                    <input type="text" class="form-control" v-model="stressCase.project" placeholder="项目名称">
+                    <input type="text" class="form-control" v-model="stressCase.project" placeholder="项目名称"/>
                 </div>
             </div>
             <div class="form-group">
@@ -78,7 +77,8 @@
             <div class="form-group">
                 <div class="col-sm-2 control-label">备注</div>
                 <div class="col-sm-10">
-                    <textarea class="form-group" v-model="stressCase.remark"  rows="6" placeholder="描述"></textarea>
+                    <textarea class="form-control" v-model="stressCase.remark" rows="6" placeholder="描述">
+                    </textarea>
                 </div>
             </div>
             <div class="form-group">
@@ -95,7 +95,7 @@
                 <input id="files" name="files" class="file-loading" type="file" multiple data-show-caption="true"/>
             </div>
             <div class="form-group">
-                <input type="button" class="btn btn-warning" @click="reload" value="结束返回">
+                <input type="button" class="btn btn-warning" @click="reload" value="结束返回"/>
             </div>
         </form>
     </div>

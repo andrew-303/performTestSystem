@@ -34,6 +34,7 @@
             <a v-if="hasPermission('test:stress')" class="btn btn-primary" @click="del"><i class="fa fa-trash-o"></i>&nbsp;删除</a>
             <a v-if="hasPermission('test:stress')" class="btn btn-primary" @click="stopAll"><i
                     class="fa fa-stop-circle"></i>&nbsp;全部停止</a>
+            <!--<a v-if="hasPermission('test:stress')" class="btn btn-primary" @click="stopAllNow"><i class="fa fa-stop-circle"></i>&nbsp;全部立即停止</a>-->
             &nbsp;<input type="button" class="btn btn-success" @click="reload" value="刷新"/>
             <a v-if="hasPermission('sys:schedule:save')" class="btn btn-primary" @click="addTask">&nbsp;加入任务</a>
             <a v-if="hasPermission('sys:schedule:update')" class="btn btn-primary" @click="queryTask">&nbsp;查看任务</a>
@@ -42,7 +43,7 @@
         </div>
         <table id="jqGrid"></table>
         <div id="jqGridPager"></div>
-        <div style="text-align: center;padding-top: 16px;">（说明：参数化文件或附件一定要记得同步到各个节点，如果是新追加了节点，也需要再次执行同步文件操作）</div>
+        <div style="text-align:center;padding-top:16px;">（说明：参数化文件或附件一定要记得同步到各个节点，如果是新追加了节点，也需要再次执行同步文件操作）</div>
     </div>
 
     <div v-show="showEdit" class="panel panel-default">
@@ -54,7 +55,7 @@
                     <input type="radio" name="reportStatus" value="1" v-model="stressTestFile.reportStatus"/> 不需要测试报告
                 </label>
                 <label class="radio-inline">
-                    <input type="radio" name="reportStatus" value="0" v-model="stressTestFile.reportStatus/"> 保存测试报告原始文件
+                    <input type="radio" name="reportStatus" value="0" v-model="stressTestFile.reportStatus"/> 保存测试报告原始文件
                 </label>
             </div>
             <div class="form-group">
@@ -112,12 +113,12 @@
         <div id="totalCountsChart"></div>
     </div>
     <div v-show="showTask" class="panel panel-default">
-        <div class="form-horizontal">{{title}}</div>
+        <div class="panel-heading">{{title}}</div>
         <form class="form-horizontal">
             <div class="form-group">
                 <div class="col-sm-2 control-label">bean名称</div>
                 <div class="col-sm-10">
-                    <input type="text" class="form-control" v-model="stressTestFile.beanName" :disabled="true" placeholder="spring bean名称，如：testTask">
+                    <input type="text" class="form-control" v-model="stressTestFile.beanName" :disabled="true" placeholder="spring bean名称，如：testTask"/>
                 </div>
             </div>
             <div class="form-group">
@@ -136,12 +137,12 @@
                 <div class="col-sm-2 control-label" for="cron">cron表达式</div>
                 <div class="col-sm-10">
                     <input v-if="showCronManual" type="text" class="form-control" v-model="stressTestFile.cronExpression" placeholder="如：0 0 12 * * ?"/>
-                    <span v-show="showCronGenerate"><input id="cron" class="form-control"/></span>
+                    <span v-show="showCronGenerate"><input id="cron" class="form-control" /></span>
                 </div>
                 <div class="col-sm-2 control-label"></div>
                 <div class="col-sm-10" @click="chkCronEditType">
                     <label class="radio-inline">
-                        <input type="radio" name="cronEditType" v-model="stressTestFile.cronEditType" value="0" />手工输入
+                        <input type="radio" name="cronEditType" v-model="stressTestFile.cronEditType" value="0"/> 手工输入
                     </label>
                     <label class="radio-inline">
                         <input type="radio" name="cronEditType" v-model="stressTestFile.cronEditType" value="1"/> 编辑器输入

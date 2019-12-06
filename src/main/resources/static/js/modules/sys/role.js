@@ -89,8 +89,29 @@ var vm = new Vue({
 			if(roleIds == null){
 				return ;
 			}
-			
-			confirm('确定要删除选中的记录？', function(){
+
+			myConfirm('确定要删除选中的记录','取消','确定','1',function(res){
+				console.log(res);
+				if(res.status){
+					//用户点击确定
+					$.ajax({
+						type: "POST",
+						url: baseURL + "sys/role/delete",
+						contentType: "application/json",
+						data: JSON.stringify(roleIds),
+						success: function(r){
+							if(r.code == 0){
+								alert('操作成功', vm.reload());
+							}else{
+								alert(r.msg);
+							}
+						}
+					});
+				}else {
+					//用户点击取消
+				}
+			});
+			/*confirm('确定要删除选中的记录？', function(){
 				$.ajax({
 					type: "POST",
 				    url: baseURL + "sys/role/delete",
@@ -106,7 +127,7 @@ var vm = new Vue({
 						}
 					}
 				});
-			});
+			});*/
 		},
 		getRole: function(roleId){
             $.get(baseURL + "sys/role/info/"+roleId, function(r){
@@ -141,9 +162,7 @@ var vm = new Vue({
 			    data: JSON.stringify(vm.role),
 			    success: function(r){
 			    	if(r.code === 0){
-						alert('操作成功', function(){
-							vm.reload();
-						});
+						alert('操作成功', vm.reload());
 					}else{
 						alert(r.msg);
 					}

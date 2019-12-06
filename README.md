@@ -26,7 +26,7 @@
 
 **项目结构** 
 ```
-renren-fast
+perform-test
 ├─doc  项目SQL语句
 │
 ├─common 公共模块
@@ -41,15 +41,16 @@ renren-fast
 │  ├─api API接口模块(APP调用)
 │  ├─job 定时任务模块
 │  ├─oss 文件服务模块
-│  ├─sys 权限模块
-│  └─test 测试模块
+│  ├─sys 权限系统管理模块
+│  └─test 压测模块
 │ 
 ├─RenrenApplication 项目启动类
 │  
 ├──resources 
 │  ├─mapper SQL对应的XML文件
 │  ├─static 第三方库、插件等静态资源
-│  └─views  项目静态页面
+│  ├─views  项目静态页面
+│  └─application.yml 环境配置
 
 ```
 
@@ -61,7 +62,7 @@ renren-fast
 - 定时器：Quartz 2.3
 - 数据库连接池：Druid 1.0
 - 日志管理：SLF4J 1.7、Log4j
-- 页面交互：Vue2.x  
+- 页面交互：Vue2.2.6  
     - zTree多功能 “树插件”
     - Font Awesome  可伸缩的字体图标
 - 前端框架：AdminLTE v2

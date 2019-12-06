@@ -6,7 +6,7 @@ server:
     min-spare-threads: 30
   port: 8080
   connection-timeout: 5000
-  #context-path: /renren-fast
+#  context-path: /renren-fast
   #TODO 修改请求前缀
   context-path: /perform-test
 
