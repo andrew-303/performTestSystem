@@ -216,15 +216,19 @@ public class StressTestController {
         for (Long caseId : caseIds) {
             List<StressTestFileEntity> fileList = stressTestFileService.queryList(caseId);
             if(!fileList.isEmpty()){ //判断是否有关联脚本文件
+                logger.info("caseId:" + caseId + " 包含有关联的脚本文件");
                 ArrayList fileIdList = new ArrayList();
                 for (StressTestFileEntity stressTestFile : fileList) {
                     fileIdList.add(stressTestFile.getFileId());
                 }
+                logger.info("fileIdList.toArray():" + fileIdList.toArray());
                 stressTestFileService.deleteBatch(fileIdList.toArray());
+
             }
         }
         // 后删除用例
         if (caseIds.length > 0) {
+            logger.info("开始删除测试用例------");
             stressTestService.deleteBatch(caseIds);
         }
         return R.ok();

@@ -286,12 +286,23 @@ public class StressTestFileServiceImpl implements StressTestFileService {
         Arrays.asList(fileIds).stream().forEach(fileId -> {
             StressTestFileEntity stressTestFile = queryObject((Long) fileId);
             String casePath = stressTestUtils.getCasePath();
+//            logger.info("casePath:" + casePath);
             String FilePath = casePath + File.separator + stressTestFile.getFileName();
+            logger.info("待删除的jmx文件为：" + FilePath);
 
-            String jmxDir = FilePath.substring(0, FilePath.lastIndexOf("."));
+            //获取文件夹路径方式一
+            /*String jmxDir = FilePath.substring(0, FilePath.lastIndexOf("\\"));
+            logger.info("待删除的jmx文件的路径jmxDir:" + jmxDir );
+            File jmxDirFile = new File(jmxDir);*/
+
+            //获取文件夹路径方式二
+            String jmxDir = new File(FilePath).getParent();
             File jmxDirFile = new File(jmxDir);
+            logger.info("待删除的jmx文件所在路径:" + jmxDirFile);
+
             try {
                 FileUtils.forceDelete(new File(FilePath));
+                logger.info("删除文件：" + FilePath);
             } catch (FileNotFoundException e) {
                 logger.error("要删除的文件找不到(删除成功)  " + e.getMessage());
             } catch (IOException e) {
@@ -300,6 +311,7 @@ public class StressTestFileServiceImpl implements StressTestFileService {
             try {
                 if (FileUtils.sizeOf(jmxDirFile) == 0L) {
                     FileUtils.forceDelete(jmxDirFile);
+                    logger.info("删除文件夹:" + jmxDirFile);
                 }
             } catch (FileNotFoundException | IllegalArgumentException e) {
                 logger.error("要删除的jmx文件夹找不到(删除成功)  " + e.getMessage());
@@ -311,11 +323,11 @@ public class StressTestFileServiceImpl implements StressTestFileService {
             StressTestUtils.jMeterEntity4file.remove(fileId);
 
             //删除远程节点的同步文件，如果远程节点比较多，网络不好，执行时间会比较长
-            deleteBatch((Object[]) fileId);
+            deleteSlaveFile((long) fileId);
         });
 
         stressTestFileDao.deleteBatch(fileIds);
-        testStressThreadSetDao.deleteBatchByFileIds(fileIds);//删除脚本关联的现场组配置信息
+        testStressThreadSetDao.deleteBatchByFileIds(fileIds);//删除脚本关联的线程组配置信息
     }
 
     /**

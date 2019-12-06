@@ -9,6 +9,8 @@ import io.renren.modules.test.entity.StressTestEntity;
 import io.renren.modules.test.service.StressTestService;
 import io.renren.modules.test.utils.StressTestUtils;
 import org.apache.commons.io.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +24,8 @@ import java.util.Map;
 
 @Service("stressTestService")
 public class StressTestServiceImpl implements StressTestService {
+
+    Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
     private StressTestDao stressTestDao;
@@ -71,10 +75,12 @@ public class StressTestServiceImpl implements StressTestService {
             StressTestEntity stressCase = queryObject(caseId);
             String casePath = stressTestUtils.getCasePath();
             String caseFilePath = casePath + File.separator + stressCase.getCaseDir();
+            logger.info("待删除的caseId对应的文件夹路径为：" + caseFilePath);
             try {
                 FileUtils.forceDelete(new File(caseFilePath));
             } catch (FileNotFoundException e) {
                 //doNothing
+                logger.info("待删除的caseId无对应的测试文件");
             } catch (IOException e) {
                 throw new RRException("删除文件异常失败", e);
             }
