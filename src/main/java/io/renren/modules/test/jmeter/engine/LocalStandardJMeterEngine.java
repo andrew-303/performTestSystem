@@ -167,9 +167,11 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
      */
     @Override
     public void configure(HashTree testTree) {
+        log.info("进入LocalStandardJMeterEngine.configure");
         //Is testplan serialised?
         SearchByClass jmeterTestPlan = new SearchByClass(JmeterTestPlan.class);
         JmeterTestPlan tpTemp = new JmeterTestPlan();
+        log.info("测试计划为：" + tpTemp.toString());
         //testPlan对应的是测试计划，每一个测试脚本之中只有一个测试计划，所以直接取第一个即可。
         //交换key值，让我们的自实现的子类jmeterTestPlan进入。
         testTree.replaceKey(testTree.keySet().toArray()[0],tpTemp);
@@ -177,6 +179,7 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
         testTree.traverse(jmeterTestPlan);
         Object[] plan = jmeterTestPlan.getSearchResults().toArray();
         if (plan.length == 0) {
+            log.info("测试计划内容==0");
             throw new RuntimeException("Could not find the TestPlan class!");
         }
         JmeterTestPlan tp = (JmeterTestPlan) plan[0];
@@ -191,51 +194,64 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
 
     @Override
     public void runTest() throws JMeterEngineException {
+        log.info("进入runTest()");
         if (host != null) {
             long now = System.currentTimeMillis();
-            System.out.println("Starting the test on host " + host + " @ " + new Date(now) +" (" +now+") ");//NOSONAR Intentional
+            log.info("Starting the test on host " + host + " @ " + new Date(now) +" (" +now+") ");//NOSONAR Intentional
         }
         try {
             Thread runningThread = new Thread(this, "LocalStandardJMeterEngine");
-            runningThread.start();
+            runningThread.start();//多线程启动
         } catch (Exception err) {
+            log.info("进入stopTest");
             stopTest();
             throw new JMeterEngineException(err);
         }
     }
 
     private void removeThreadGroups(List<?> elements) {
+        log.info("开始移除线程组");
         Iterator<?> iter = elements.iterator();
+        log.info("传入的elements的size：" + elements.size());
         while (iter.hasNext()) {
             Object item = iter.next();
             if (item instanceof AbstractThreadGroup) {
+                log.info("item instanceof AbstractThreadGroup");
                 iter.remove();
             } else if (!(item instanceof TestElement)) {
+                log.info("!(item instanceof TestElement)");
                 iter.remove();
             }
         }
     }
 
     private void notifyTestListenersOfStart(SearchByClass<TestStateListener> testListeners) {
+        log.info("通知测试监听器启动");
         for (TestStateListener tl : testListeners.getSearchResults()) {
             if(tl instanceof TestBean) {
+                log.info("TestStateListener内容：" + tl);
                 TestBeanHelper.prepare((TestElement) tl);
             }
             if (host == null) {
+                log.info("hots地址为:" + host);
                 tl.testStarted();
             }else {
+                log.info("hots地址为:" + host);
                 tl.testStarted(host);
             }
         }
     }
 
-    private void notifyTestListenersofEnd(SearchByClass<TestStateListener> testListeners) {
-        log.info("Notifying test listeneers of end of test");
+    private void notifyTestListenersOfEnd(SearchByClass<TestStateListener> testListeners) {
+        log.info("Notifying test listeners of end of test");
+        log.info("testListeners测试结果的大小为：" + testListeners.getSearchResults().size());
         for (TestStateListener tl : testListeners.getSearchResults()) {
             try {
                 if (host == null) {
+                    log.info("notifyTestListenersofEnd.host:" + host);
                     tl.testEnded();
                 } else {
+                    log.info("notifyTestListenersofEnd.host:" + host);
                     tl.testEnded(host);
                 }
             } catch (Exception e) {
@@ -245,7 +261,7 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
         if (host != null) {
             log.info("Test has ended on host {} ",host);
             long now = System.currentTimeMillis();
-            System.out.println("Finished the test on host " + host + " @ "+new Date(now)+" ("+now+"( "//NOSONAR Intentional
+            log.info("Finished the test on host " + host + " @ "+new Date(now)+" ("+now+")"//NOSONAR Intentional
             +(EXIT_AFTER_TEST ?" - exit requested." : ""));
             if (EXIT_AFTER_TEST) {
                 exit();
@@ -272,7 +288,9 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
     @Override
     public synchronized void stopTest(boolean now) {
         Thread stopThread = new Thread(new LocalStandardJMeterEngine.StopTest(now));
+        log.info("stopThread begin...");
         stopThread.start();
+        log.info("stopThread end...");
     }
 
     private class StopTest implements Runnable {
@@ -289,6 +307,7 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
          * </ul>
          */
         private void stopAllThreadGroups() {
+            log.info("进入stopAllThreadGroups");
             // ConcurrentHashMap does not need synch. here
             for (AbstractThreadGroup threadGroup : groups) {
                 threadGroup.stop();
@@ -299,6 +318,7 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
          * For each thread group, invoke {@link AbstractThreadGroup#tellThreadsToStop()}
          */
         private void tellThreadGroupsToStop() {
+            log.info("进入tellThreadGroupsToStop()");
             // ConcurrentHashMap does not need protecting
             for (AbstractThreadGroup threadGroup : groups) {
                 threadGroup.tellThreadsToStop();
@@ -321,6 +341,7 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
          * @return total of active threads in all Thread Groups
          */
         private int countStillActiveThreads() {
+            log.info("进入countStillActiveThreads");
             int reminingThreads = 0;
             for (AbstractThreadGroup threadGroup : groups) {
                 reminingThreads += threadGroup.numberOfActiveThreads();
@@ -330,6 +351,7 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
 
         @Override
         public void run() {
+            log.info("进入StopTest()的多线程处理run()方法");
             running = false;
             resetSingletonEngine();
             if (now) {
@@ -337,23 +359,26 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
                 pause(10L * countStillActiveThreads());
                 boolean stopped = verifyThreadStopped();
                 if (!stopped) { //we totally failed to stop the test
+                    log.info("we totally failed to stop the test");
                     if (JMeter.isNonGUI()) {
                         // should we call test listeners? That might hang too ...
                         log.error(JMeterUtils.getResString("stopping_test_failed"));//$NON-NLS-1$
                         if (SYSTEM_EXIT_ON_STOP_FAIL) { //defaul is true
                             log.error("Exiting");
-                            System.out.println("Fatal error,could not stop test,exiting");//NOSONAR Intentional
+                            log.error("Fatal error,could not stop test,exiting");//NOSONAR Intentional
                             System.exit(1); //NOSONAR Intentional;
                         }else {
-                            System.out.println("Fatal error,could not stop test");//NOSONAR Intentional
+                            log.error("Fatal error,could not stop test");//NOSONAR Intentional
                         }
                     }else {
+                        log.info("!JMeter.isNonGUI()");
                         JMeterUtils.reportErrorToUser(
                                 JMeterUtils.getResString("stopping_test_failed"),//$NON-NLS-1$
                                 JMeterUtils.getResString("stopping_test_title"));//$NON-NLS-1$
                     }
                 }// else will be done by threadFinished()
             } else {
+                log.info("准备进入stopAllThreadGroups()");
                 stopAllThreadGroups();
             }
         }
@@ -362,7 +387,7 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
     @Override
     public void run() {
         log.info("Running the test!");
-        running = false;
+        running = true;
 
         /*
          * Ensure that the sample variables are correctly initialised for each run.
@@ -374,6 +399,7 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
         try {
             PreCompiler compiler = new PreCompiler();
             test.traverse(compiler);
+            log.info("test.traverse(compiler)");
         }catch (RuntimeException e) {
             log.error("Error occurred compiling the tree:",e);
             JMeterUtils.reportErrorToUser("Error occurred compiling the tree: - see log file",e);
@@ -385,10 +411,12 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
          */
         SearchByClass<TestStateListener> testListeners = new SearchByClass<>(TestStateListener.class);//TL - S&E
         test.traverse(testListeners);
+        log.info("test.traverse(testListeners)");
 
         // Merge in any additional test listeners  合并到任何其他测试侦听器中
         // currently only used by the function parser 当前仅由函数分析器使用
         testListeners.getSearchResults().addAll(testList);
+        log.info("testListeners的内容是:"+testListeners.toString());
         testList.clear(); // no longer needed
 
         //TurnElementsOn为所有匹配的节点调用{@link TestElement#setRunningVersion(boolean) setRunningVersion(true)}
@@ -412,6 +440,7 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
         test.traverse(postSearcher);
 
         TestCompiler.initialize();
+        log.info("TestCompiler.initialize()");
         // for each thread group, generate threads 对于每个线程组，生成线程
         // hand each thread the sampler controller 将每个线程交给采样器控制器
         // and the listeners, and the timer  还有侦听器和计时器
@@ -466,13 +495,17 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
         JMeterContextService.getContext().setSamplingStarted(true);
         boolean mainGroups = running;//still running at this point,i.e. setUp was not cancelled
         while (running && iter.hasNext()) {//for each thread group
+            log.info("running && iter.hasNext()");
             AbstractThreadGroup group = iter.next();
             //ignore Setup and Post here. We could have filtered the searcher.忽略设置并在此处发布。我们可以过滤搜索者。
             //but then future Thread Group objects wouldn't execute.但以后的线程组对象将不会执行
             if (group instanceof SetupThreadGroup || group instanceof PostThreadGroup) {
+                log.info("group instanceof SetupThreadGroup:" +String.valueOf(group instanceof SetupThreadGroup));
+                log.info("group instanceof PostThreadGroup:" +String.valueOf(group instanceof PostThreadGroup));
                 continue;
             }
             groupCount++;
+
             String groupName = group.getName();
             log.info("Starting ThreadGroup:{}:{}",groupCount,groupName);
             startThreadGroup(group,groupCount,searcher,testLevelElements,notifier);
@@ -501,12 +534,15 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
             log.info("Starting tearDown thread groups");
             if (mainGroups && !running) {//i.e. shutdown/stoppd during main thread groups
                 running = tearDownOnShutdown;//re-enable for tearDown if necessary 必要时重新启用tearDown
+                log.info("running:" + running);
             }
             while (running && postIter.hasNext()) {//for each setup thread group
+                log.info("running && postIter.hasNext() 判断为true");
                 AbstractThreadGroup group = postIter.next();
                 groupCount++;
                 String groupName = group.getName();
                 log.info("Starting tearDown ThreadGroup:{}:{}",groupCount,groupName);
+                startThreadGroup(group,groupCount,postSearcher,testLevelElements,notifier);
                 if (serialized && postIter.hasNext()) {
                     log.info("Waiting for post thread group:{} to finish before starting next post group",groupName);
                     group.waitThreadsStopped();
@@ -515,7 +551,7 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
             waitThreadStopped();//wait for Post threads to stop
         }
 
-        notifyTestListenersofEnd(testListeners);
+        notifyTestListenersOfEnd(testListeners);
         JMeterContextService.endTest();
         if (JMeter.isNonGUI() && SYSTEM_EXIT_FORCED) {
             log.info("Forced JVM shutdown requested at end of test");
@@ -525,6 +561,7 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
 
     //启动线程组
     private void startThreadGroup(AbstractThreadGroup group,int groupCount,SearchByClass<?> searcher,List<?> testLevelElements,ListenerNotifier notifier) {
+        log.info("启动线程组");
         try {
             int numThreads = group.getNumThreads();
             JMeterContextService.addTotalThreads(numThreads);
@@ -561,6 +598,7 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
      * Wait for Group Threads to stop
      */
     private void waitThreadStopped() {
+        log.info("Wait for Group Threads to stop");
         //ConcurrentHashMap does not need synch. here
         for (AbstractThreadGroup threadGroup : groups) {
             threadGroup.waitThreadsStopped();
@@ -592,10 +630,10 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
             Thread t = new Thread() {
                 @Override
                 public void run() {
-                    pause(1000);// Allow RMI to complete
+                    pause(1000); // Allow RMI to complete
                     log.info("Bye from {}",host);
-                    System.out.println("Bye from "+host);//NOSONAR Intentional
-                    System.exit(0);//NOSONAR Intentional
+                    System.out.println("Bye from " + host); // NOSONAR Intentional
+                    System.exit(0); // NOSONAR Intentional
                 }
             };
             t.start();
@@ -603,6 +641,7 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
     }
 
     private void pause(long ms) {
+        log.info("进入pause(),入参：" + ms + " ms");
         try {
             TimeUnit.MILLISECONDS.sleep(ms);
         } catch (InterruptedException e) {
@@ -620,6 +659,7 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
     public boolean isActive() {
         return active;
     }
+
     public List<AbstractThreadGroup> getGroups() {
         return groups;
     }

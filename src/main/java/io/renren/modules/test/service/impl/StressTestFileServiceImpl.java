@@ -356,28 +356,40 @@ public class StressTestFileServiceImpl implements StressTestFileService {
 
         String casePath = stressTestUtils.getCasePath();
         String fileName = stressTestFile.getFileName();
+        //压测脚本文件
+        //filePath=D:\temp_data\EstressTestCases\20191204112813513\case20191204112833337.jmx
         String filePath = casePath + File.separator + fileName;
+        logger.info("压测脚本文件filePath:" + filePath);
 
         //测试结果文件路径
         //jmx用例文件夹对应的相对路径名如20180504172207568\case20180504172207607
         String jmxDir = fileName.substring(0, fileName.lastIndexOf("."));
+        logger.info("测试结果保存路径jmxDir：" + jmxDir);
         String suffix = StressTestUtils.NEED_DEBUG.equals(stressTestFile.getDebugStatus()) ? "jtl" : "csv";
+        logger.info("测试结果文件后缀："+suffix);
         // 测试结果文件csv文件的名称，如case20180504172207607_4444.csv
         String csvName = jmxDir.substring(jmxDir.lastIndexOf(File.separator) + 1) + StressTestUtils.getSuffix4() + "." + suffix;
+        logger.info("测试结果文件csv文件的名称:" + csvName);
         //测试结果文件csv文件的真实路径，如：D:\E\stressTestCases\20180504172207568\case20180504172207607\case20180504172207607_4444.csv
         String csvPath = casePath + File.separator + jmxDir + File.separator + csvName;
+        logger.info("测试结果文件csv文件的真实路径:" + csvPath);
         String fileOriginName = stressTestFile.getOriginName();
+        logger.info("测试用例文件名fileOriginName:" + fileOriginName);
         String reportOirginName = fileOriginName.substring(0, fileOriginName.lastIndexOf(".")) + "_" + StressTestUtils.getSuffix4();
+        logger.info("测试用例报告文件名reportOirginName:" + reportOirginName);
 
         File csvFile = new File(csvPath);
         File jmxFile = new File(filePath);
 
         StressTestReportsEntity stressTestReports = null;
         if (StressTestUtils.NEED_REPORT.equals(stressTestFile.getReportStatus())) {
+            logger.info("本次测试需要测试报告");
             //如果是需要调试的情况下
             if (StressTestUtils.NEED_DEBUG.equals(stressTestFile.getDebugStatus())) {
+                logger.info("本次测试需要调试");
                  stressTestReports = new DebugTestReportsEntity();
             } else {
+                logger.info("本次测试不需要调试");
                 stressTestReports = new StressTestReportsEntity();
             }
 
@@ -394,14 +406,17 @@ public class StressTestFileServiceImpl implements StressTestFileService {
         map.put("csvFile",csvFile);
 
         String slaveStr = getSlaveIPPort();
+        logger.info("分布式节点的IP地址拼装结果:" + slaveStr);
         // slaveStr 用来做脚本是否是分布式执行的判断，不入库。
         stressTestFile.setSlaveStr(slaveStr);
 
         try {
             if (stressTestUtils.isUseJmeterScript()) {
+                logger.info("本次测试 isUseJmeterScript");
                 excuteJmeterRunByScript(stressTestFile, stressTestReports, map);
             } else {
-                excuteJmeterRunByScript(stressTestFile, stressTestReports, map);
+                logger.info("本次测试 is not isUseJmeterScript");
+                excuteJmeterRunLocal(stressTestFile, stressTestReports, map);
             }
         } catch (RRException e) {
             //解决BUG:分布式情况下禁止调试，却无法在前端提示。修复后会提示用户“请关闭调试模式”
@@ -416,13 +431,16 @@ public class StressTestFileServiceImpl implements StressTestFileService {
         if (stressTestReports != null) {
             //将调试测试报告放到调试的数据表中记录
             if (stressTestReports instanceof DebugTestReportsEntity) {
+                logger.info("stressTestReports是一个DebugTestReportsEntity");
                 debugTestReportsDao.save((DebugTestReportsEntity) stressTestReports);
             } else {
+                logger.info("stressTestReports不是一个DebugTestReportsEntity");
                 stressTestReportsDao.save(stressTestReports);
             }
         }
 
         if (StringUtils.isNotEmpty(slaveStr)) {
+            logger.info("slaveStr不为空：" + slaveStr);
             if (checkSlaveLocal()) {
                 return "分布式压测开始！节点机为：" + slaveStr + ",Local节点" + " 共" + (slaveStr.split(",").length +1) +" 个节点";
             }
@@ -502,6 +520,7 @@ public class StressTestFileServiceImpl implements StressTestFileService {
 
             stressTestUtils.setJmeterProperties();
             if (StressTestUtils.NEED_DEBUG.equals(stressTestFile.getDebugStatus())) {
+                logger.info("本次测试需要调试");
                 if (StringUtils.isNotEmpty(slaveStr)) { //分布式的方式启动
                     throw new RRException("不支持在分布式slave节点调试，请关闭调试模式！");
                 }
@@ -512,8 +531,10 @@ public class StressTestFileServiceImpl implements StressTestFileService {
             //主要原因是参数化文件会混淆，设置脚本base目录时会判断当前进程内是否存在正在使用的文件。
             //而FileServer是单例的（不支持并发的单例），对其无法修复。
             if (!StressTestUtils.checkExistRunningScript()) {
+                logger.info("当前没有正在执行的脚本");
                 FileServer.getFileServer().setBaseForScript(jmxFile);
             } else {
+                logger.info("当前有正在执行的脚本");
                 //改变脚本名称
                 FileServer.getFileServer().setScriptName(jmxFile.getName());
                 //通过反射改变base名称
@@ -523,6 +544,7 @@ public class StressTestFileServiceImpl implements StressTestFileService {
                 baseFiled.set(FileServer.getFileServer(),jmxFile.getAbsoluteFile().getParentFile());
             }
             HashTree jmxTree = SaveService.loadTree(jmxFile);
+            logger.info("jmxTree的内容:" + jmxTree.toString());
             //删除禁用的元素,用目标子树替换可替换控制器,克隆树以确保通常引用的NoThreadClone元素被克隆
             JMeter.convertSubTree(jmxTree);
 
@@ -530,12 +552,14 @@ public class StressTestFileServiceImpl implements StressTestFileService {
             //如果不要监控也不要测试报告，则不加自定义的Collector到文件里，让性能最大化。
             if (StressTestUtils.NEED_REPORT.equals(stressTestFile.getReportStatus())
                     || StressTestUtils.NEED_WEB_CHART.equals(stressTestFile.getWebchartStatus())) {
+                logger.info("本次测试需要测试报告或者Chart监控");
                 //添加收集观察监听程序。具体情况的区分在起程序内做分别，原因是情况较多，父子类的实现不现实。
                 //使用自定义的Collector,用于前端绘图的数据收集和日志收集等。
                 jmeterResultCollector = new JmeterResultCollector(stressTestFile);
 
                 //对调试模式的处理，让结果文件保存为xml格式
                 if (StressTestUtils.NEED_DEBUG.equals(stressTestFile.getDebugStatus())) {
+                    logger.info("正在使用调试模式");
                     jmeterResultCollector.getSaveConfig().setAsXml(true);
                 }
 
@@ -544,7 +568,7 @@ public class StressTestFileServiceImpl implements StressTestFileService {
             }
 
             //增加程序执行结束的监控
-            //enginess 为null停止脚步后不会直接停止远程client的JVM进程。
+            //enginess 为null停止脚本后不会直接停止远程client的JVM进程。
             //reportGenerator 为Null 停止后脚本后不会直接生成测试报告。
             jmxTree.add(jmxTree.getArray()[0],new JmeterListenToTest(null,
                     null,this,stressTestFile.getFileId()));
@@ -562,6 +586,7 @@ public class StressTestFileServiceImpl implements StressTestFileService {
             jmeterRunEntity.setJmeterResultCollector(jmeterResultCollector);
             jmeterRunEntity.setEngines(engines);
             jmeterRunEntity.setRunStatus(StressTestUtils.RUNNING);
+            logger.info("jmeterRunEntity的内容为:" + jmeterRunEntity.toString());
 
             //查找脚本文件所用到的所有的参数化文件的名称，当前只查找了CSVData参数化类型的。
             //将其放入到内存中，为了脚本结束之后关闭这些参数化文件。
@@ -576,6 +601,7 @@ public class StressTestFileServiceImpl implements StressTestFileService {
 
             StressTestUtils.jMeterEntity4file.put(stressTestFile.getFileId(),jmeterRunEntity);
             if (StringUtils.isNotEmpty(slaveStr)) { //分布式的方式启动
+                logger.info("本测试使用分布式方式启动");
                 StringTokenizer st  = new StringTokenizer(slaveStr, ",");//$NON-NLS-1$
                 List<String> hosts = new LinkedList<>();
                 while (st.hasMoreElements()) {
@@ -599,12 +625,22 @@ public class StressTestFileServiceImpl implements StressTestFileService {
                     engines.add((JMeterEngine) engine);
                 }
             } else {//本机运行
+                logger.info("本测试使用本机方式启动");
                 //JMeterEngine 本身就是线程，启动即为异步执行，resultCollector会监听保存csv文件。
                 // Object engine = engineRun(stressTestFile, jmxTree);
                 JMeterEngine engine = new LocalStandardJMeterEngine(stressTestFile);
+                logger.info("进入engine.configure()");
                 engine.configure(jmxTree);
+                logger.info("退出engine.configure()");
+
+                logger.info("进入engine.runTest()");
                 engine.runTest();
+                logger.info("退出engine.runTest()");
+
+                logger.info("engines添加engine开始");
                 engines.add( engine);
+                logger.info("engines添加engine完成");
+                logger.info("engines为：" + engines);
             }
 
         } catch (IOException | JMeterEngineException e) {

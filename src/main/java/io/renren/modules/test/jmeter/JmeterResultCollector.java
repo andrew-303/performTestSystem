@@ -7,6 +7,8 @@ import org.apache.jmeter.reporters.ResultCollector;
 import org.apache.jmeter.samplers.SampleEvent;
 import org.apache.jmeter.samplers.SampleResult;
 import org.apache.jmeter.visualizers.SamplingStatCalculator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -16,6 +18,7 @@ import java.util.Map;
  * 相当于观察者模式的观察类，钩子程序
  */
 public class JmeterResultCollector extends ResultCollector {
+    Logger logger = LoggerFactory.getLogger(getClass());
 
     protected static final long serialVersionUID = 240L;
 
@@ -38,14 +41,17 @@ public class JmeterResultCollector extends ResultCollector {
      * 为分布式反射使用
      */
     public JmeterResultCollector(StressTestFileEntity stressTestFile) {
+        logger.info("进入Jmeter结果收集");
         samplingStatCalculatorMap = new HashMap<>();
         this.stressTestFile = stressTestFile;
         if (StringUtils.isNotEmpty(stressTestFile.getSlaveStr())) {//true表示使用分布式压测
+            logger.info("正在使用分布式压测");
             StressTestUtils.jMeterStatuses.put(SLAVE_NEED_REPORT,stressTestFile.getReportStatus().toString());
             StressTestUtils.jMeterStatuses.put(SLAVE_NEED_CHART,stressTestFile.getWebchartStatus().toString());
             //对于分布式，不再按照脚本文件来区分前端监控，分布式压测不支持master同时压测多个脚本文件的前端区分监控。
             StressTestUtils.samplingStatCalculator4File.put(0L,samplingStatCalculatorMap);
         } else {
+            logger.info("未使用分布式压测");
             StressTestUtils.samplingStatCalculator4File.put(stressTestFile.getFileId(),samplingStatCalculatorMap);
         }
     }
