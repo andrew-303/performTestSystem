@@ -9,6 +9,8 @@ import org.apache.jmeter.engine.JMeterEngine;
 import org.apache.jmeter.engine.StandardJMeterEngine;
 import org.apache.jmeter.threads.AbstractThreadGroup;
 import org.apache.jmeter.threads.JMeterContextService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -18,6 +20,7 @@ import java.util.*;
  * 为了执行Jmeter用例而设计的类，每一个脚本文件对应一个JmeterRunEntity对象
  */
 public class JmeterRunEntity {
+    Logger logger = LoggerFactory.getLogger(getClass());
 
     private StressTestFileEntity stressTestFile;
     private StressTestReportsEntity stressTestReports;
@@ -67,16 +70,19 @@ public class JmeterRunEntity {
     private int numberOfActiveThreads = 0;
 
     public void stop() {
+        logger.info("开始停止当前脚本的压力引擎");
         //缓存中变更状态为成功执行
         runStatus = StressTestUtils.RUN_SUCCESS;
         engines.forEach(engine -> {
             if (engine != null) {
                 if (engine instanceof StandardJMeterEngine) {
+                    logger.debug("engine instanceof StandardJMeterEngine");
                     //本身不是gui方式运行的，没有进程强制结束风险
                     //如果使用字节码修改技术，则必须使用反射的方法调用。
                     try{
                         Method stopTestM = engine.getClass().getMethod("stopTest", new Class[]{});
                         stopTestM.invoke(engine,new Object[]{});
+                        logger.debug("反射类的方法为：" + stopTestM);
                     } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
                         throw new RRException(e.getMessage(),e);
                     }

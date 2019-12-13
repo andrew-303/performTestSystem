@@ -2,6 +2,8 @@ package io.renren.modules.test.jmeter;
 
 import io.renren.modules.test.utils.StressTestUtils;
 import org.apache.jmeter.visualizers.SamplingStatCalculator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -11,6 +13,7 @@ import java.util.Map;
  * 不包含任何查询数据库请求，全部缓存操作
  */
 public class JmeterStatEntity {
+    Logger logger = LoggerFactory.getLogger(getClass());
 
     private Long fileId;
 
@@ -24,7 +27,7 @@ public class JmeterStatEntity {
     /**
      * 响应时间相关的监控数据
      */
-    private Map<String,String> responseTimeMap = new HashMap<>();
+    private Map<String,String> responseTimesMap = new HashMap<>();
 
     /**
      * 每秒通过数（RPS）相关的监控数据
@@ -80,36 +83,47 @@ public class JmeterStatEntity {
             statMap = StressTestUtils.samplingStatCalculator4File.get(fileIdZero);
         } else { //单机模式下
             this.fileId = fileId;
+            logger.debug("本测试用例fileId：" + fileId);
             statMap = StressTestUtils.samplingStatCalculator4File.get(fileId);
+            logger.debug("statMap:" + statMap);
+            logger.debug("statMap.size():" + statMap.size());
+            for (Map.Entry<String,SamplingStatCalculator> m: statMap.entrySet()) {
+                logger.debug("key:" + m.getKey() + " value:" + m.getValue());
+            }
+
+
         }
 
         //StressTestUtils.jMeterEntity4file 中保存的都是真实的脚本文件信息
         jmeterRunEntity = StressTestUtils.jMeterEntity4file.get(fileId);
         if (jmeterRunEntity != null) {
             runStatus = jmeterRunEntity.getRunStatus();
+            logger.debug("jmeterRunEntity.runStatus=" + runStatus);
         } else {
             //jmeterRunEntity为null 说明是初始化状态，没有执行过。
             runStatus = StressTestUtils.INITIAL;
+            logger.debug("jmeterRunEntity=null,runStatus=" + runStatus);
         }
     }
 
-    public Map<String, String> getResponseTimeMap() {
+    public Map<String, String> getresponseTimesMap() {
+        logger.debug("进入getresponseTimesMap()");
         if (statMap != null) {
             statMap.forEach((k,v)->{
                 /**
                  * 平均响应时间算法是当前请求总共花费的时间/响应了多少请求。
                  * 这个时间是正确的。
                  */
-                responseTimeMap.put(k + "_Avg(ms)",String.format("%.2f",v.getMean()));
+                responseTimesMap.put(k + "_Avg(ms)",String.format("%.2f",v.getMean()));
                 //responseTimesMap.put(k + "_Max(ms)", String.valueOf(v.getMax()));
                 //responseTimesMap.put(k + "_Min(ms)", String.valueOf(v.getMin()));
             });
         }
-        return responseTimeMap;
+        return responseTimesMap;
     }
 
-    public void setResponseTimeMap(Map<String, String> responseTimeMap) {
-        this.responseTimeMap = responseTimeMap;
+    public void setResponseTimesMap(Map<String, String> responseTimesMap) {
+        this.responseTimesMap = responseTimesMap;
     }
 
     public Map<String,String> getThroughputMap() {
@@ -127,6 +141,11 @@ public class JmeterStatEntity {
         }
         return throughputMap;
     }
+
+    public void setThroughputMap(Map<String, String> throughputMap) {
+        this.throughputMap = throughputMap;
+    }
+
 
     public Map<String,String> getNetworkSentMap() {
         if (statMap != null) {
@@ -173,7 +192,7 @@ public class JmeterStatEntity {
                 long errorCount = calculator.getErrorCount();
                 double errorPercent = Double.parseDouble(String.format("%.2f", ((double) errorCount / (double) totalCount)));
                 successPercentageMap.put(key + "_ErrorPercent",String.valueOf(errorPercent));
-                successPercent = successPercent + errorPercent;
+                successPercent = successPercent - errorPercent;
             }
         }
         successPercentageMap.put("SuccessPercent",String.format("%.2f",successPercent));

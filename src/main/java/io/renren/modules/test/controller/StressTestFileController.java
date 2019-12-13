@@ -10,6 +10,8 @@ import io.renren.modules.test.jmeter.JmeterStatEntity;
 import io.renren.modules.test.service.StressTestFileService;
 import io.renren.modules.test.utils.StressTestUtils;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.InputStreamResource;
@@ -28,6 +30,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/test/stressFile")
 public class StressTestFileController {
+    Logger logger = LoggerFactory.getLogger(getClass());
+
     @Autowired
     private StressTestFileService stressTestFileService;
 
@@ -136,8 +140,13 @@ public class StressTestFileController {
      */
     @RequestMapping("/statInfo/{fileId}")
     public R statInfo(@PathVariable("fileId") Long fileId) {
+        logger.debug("请求url：" + "test/stressFile/statInfo/" + fileId);
         //频率不是特别高，可以是new一个对象
         JmeterStatEntity jmeterStatEntity = stressTestFileService.getJmeterStatEntity(fileId);
+        logger.debug("jmeterStatEntity: " + jmeterStatEntity);
+//        logger.debug("jmeterStatEntity:" + jmeterStatEntity.getResponseTimeMap());
+//        logger.debug("jmeterStatEntity:" + jmeterStatEntity.getResponseTimeMap().size());
+
         return R.ok().put("statInfo",jmeterStatEntity);
     }
 

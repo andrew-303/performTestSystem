@@ -29,15 +29,16 @@ import static io.renren.common.utils.ConfigConstant.OS_NAME_LC;
  * 性能测试的工具类，同时用于读取配置文件。
  * 也可以将性能测试参数配置到系统参数配置中去。
  */
+//@ConfigurationProperties(prefix = "test.stress")
 @Component
 public class StressTestUtils {
 
     Logger logger = LoggerFactory.getLogger(getClass());
 
-    private static SysConfigService sysConfigService = (SysConfigService)SpringContextUtils.getBean("sysConfigService");
+    private static SysConfigService sysConfigService = (SysConfigService) SpringContextUtils.getBean("sysConfigService");
     public static String xslFilePath = "classpath:config/jmeter.results.zyanycall.xsl";
 
-    //0：初始状态    1：正在运行  2：成功执行  3：运行出现异常
+    //0：初始状态  1：正在运行  2：成功执行  3：运行出现异常
     public static final Integer INITIAL = 0;
     public static final Integer RUNNING = 1;
     public static final Integer RUN_SUCCESS = 2;
@@ -52,15 +53,15 @@ public class StressTestUtils {
 
     /**
      * 是否需要前端Chart监控的状态标识
-     * 0:需要前端监控 1：不需要前端监控
      */
+    //0：需要前端监控  1：不需要前端监控
     public static final Integer NEED_WEB_CHART = 0;
-    public static final Integer NO_NEED_WEB_CHART =1;
+    public static final Integer NO_NEED_WEB_CHART = 1;
 
     /**
      * 是否开启调试的状态标识
-     * 0:默认关闭调试 1：开启调试
      */
+    //0：默认关闭调试  1：开启调试
     public static final Integer NO_NEED_DEBUG = 0;
     public static final Integer NEED_DEBUG = 1;
 
@@ -70,21 +71,22 @@ public class StressTestUtils {
     public static final Integer PROGRESSING = 2;
 
     /**
-     * 针对每一个fileId，存储一份用于存储每一个用例的计算结果集合
+     * 针对每一个fileId，存储一份
+     * 用于存储每一个用例的计算结果集合。
      */
     public static Map<Long, Map<String, SamplingStatCalculator>> samplingStatCalculator4File = new HashMap<>();
 
     /**
-     * 针对每一个fileId,存储一份Jmeter的Engines,用于指定的用例启动和停止。
-     * 如果不使用分布式节点，则Engines仅包含master节点。
-     * 默认是使用分布式的，则Engines会包含所有有效的分布式节点的Engine.
+     * 针对每一个fileId，存储一份Jmeter的Engines，用于指定的用例启动和停止。
+     * 如果不使用分布式节点，则Engines仅包含master主节点。
+     * 默认是使用分布式的，则Engines会包含所有有效的分布式节点的Engine。
      */
-    public static Map<Long,JmeterRunEntity> jMeterEntity4file = new HashMap<>();
+    public static Map<Long, JmeterRunEntity> jMeterEntity4file = new HashMap<>();
 
     /**
-     * 主进程Master内保存的一些状态，主要用于分布式的压测操作服务
+     * 主进程Master内保存的一些状态，主要用于分布式的压测操作服务。
      */
-    public static Map<String,String> jMeterStatuses = new HashMap<>();
+    public static Map<String, String> jMeterStatuses = new HashMap<>();
 
     //private static String jmeterHome;
 
@@ -108,14 +110,17 @@ public class StressTestUtils {
 
     /**
      * 如果配置了Jmeter脚本启动，则额外开启Jmeter进程运行测试用例脚本及分布式程序。
-     * 分布式程序可以取消ssl校验。同时仅支持Jmeter脚本启动，则使用web本身自带的Jmeter功能
-     * 支持自带的Echarts实时监控。默认是false,即使用web程序进程来启动Jmeter-master程序。
+     * 分布式程序可以取消ssl校验。
+     * 同时仅支持Jmeter+InfluxDB+Grafana的实时监控。
+     * 如果没有配置Jmeter脚本启动，则使用web本身自带的Jmeter功能。
+     * 支持自带的ECharts实时监控。
+     * 默认是false，即使用web程序进程来启动Jmeter-master程序。
      */
     public final static String MASTER_JMETER_USE_SCRIPT_KEY = "MASTER_JMETER_USE_SCRIPT_KEY";
 
     /**
      * 如果配置了本地生成测试报告（不包括调试报告），则使用web程序进程生成测试报告。
-     * 默认是true,即配置为本地web程序进程，好处是可以多线程并发生成测试报告。
+     * 默认是true，即配置为本地web程序进程，好处是可以多线程并发生成测试报告。
      * 对应的，如果为false则使用Jmeter_home的脚本生成测试报告，无法同时生成多个测试报告。
      */
     public final static String MASTER_JMETER_GENERATE_REPORT_KEY = "MASTER_JMETER_GENERATE_REPORT_KEY";
@@ -126,7 +131,7 @@ public class StressTestUtils {
     public final static String MASTER_JMETER_REPLACE_FILE_KEY = "MASTER_JMETER_REPLACE_FILE_KEY";
 
     /**
-     * 脚本的默认最长定时执行时间，是否开启，默认是true,开启。
+     * 脚本的默认最长定时执行时间，是否开启，默认是为true，开启。
      * 具体的执行时间，由脚本文件字段来配置。单位是秒，对应的是Jmeter脚本的duration字段。
      * 该功能添加的原因是应对脚本执行，但是忘记了关闭的情况，这样会导致浪费系统资源，尤其是线上操作尤其危险。
      */
@@ -167,7 +172,7 @@ public class StressTestUtils {
 
     public static String getSuffix4() {
         String currentTimeStr = System.currentTimeMillis() + "";
-        return currentTimeStr.substring(currentTimeStr.length() -4);
+        return currentTimeStr.substring(currentTimeStr.length() - 4);
     }
 
     /**
@@ -207,7 +212,7 @@ public class StressTestUtils {
             String sidxValue = params.get("sidx").toString();
 
             if ("caseid".equalsIgnoreCase(sidxValue)) {
-                params.put("sidx","case_id");
+                params.put("sidx", "case_id");
             } else if ("addTime".equalsIgnoreCase(sidxValue)) {
                 params.put("sidx", "add_time");
             } else if ("updateTime".equalsIgnoreCase(sidxValue)) {
@@ -246,21 +251,17 @@ public class StressTestUtils {
     public void saveFile(MultipartFile multipartFile, String filePath) {
         try {
             File file = new File(filePath);
-            FileUtils.forceMkdirParent(file);//强制创建文件目录，如果不能创建，会抛出异常
-            /**
-             * 使用此方法保存必须要绝对路径且文件夹必须已存在,否则报错
-             * 将接收到的文件传输到给定的目标文件。
-             */
+            FileUtils.forceMkdirParent(file);
             multipartFile.transferTo(file);
         } catch (IOException e) {
-            throw new RRException("保存文件异常失败",e);
+            throw new RRException("保存文件异常失败", e);
         }
     }
 
     /**
      * 判断当前是否存在正在执行的脚本
      */
-    public static boolean checkExistRunningScript() {
+    public static boolean checkExistRunningScript(){
         for (JmeterRunEntity jmeterRunEntity : jMeterEntity4file.values()) {
             if (jmeterRunEntity.getRunStatus().equals(RUNNING)) {
                 return true;
@@ -280,19 +281,13 @@ public class StressTestUtils {
 
         Properties jmeterProps = JMeterUtils.getJMeterProperties();
 
-        //Add local JMeter properties, if the file is found
+        // Add local JMeter properties, if the file is found
         String userProp = JMeterUtils.getPropDefault("user.properties", ""); //$NON-NLS-1$
         if (userProp.length() > 0) { //$NON-NLS-1$
-            File file = JMeterUtils.findFile(userProp);//Find a file in the current directory or in the JMeter bin directory.
-            if (file.canRead()) { //判断文件是否能被读取
+            File file = JMeterUtils.findFile(userProp);
+            if (file.canRead()) {
                 try (FileInputStream fis = new FileInputStream(file)) {
                     Properties tmp = new Properties();
-                    /**
-                     * Properties的load方法其实就是传进去一个输入流，字节流或者字符流，字节流利用InputStreamReader转化为字符流，然后字符流用
-                     * BufferedReader包装，BufferedReader读取properties配置文件，每次读取一行，分割成两个字符串。
-                     * 因为Properties是Map的子类，然后用put将两个字符串装进Properties对象。
-                     * 用 Properties.getProperty()来读取配置文件里面的属性值.
-                     */
                     tmp.load(fis);
                     jmeterProps.putAll(tmp);
                 } catch (IOException e) {
@@ -300,29 +295,29 @@ public class StressTestUtils {
             }
         }
 
-        //Add local system properties,if the file is found
-        String sysProp = JMeterUtils.getPropDefault("system.properties", "");//$NON-NLS-1$
+        // Add local system properties, if the file is found
+        String sysProp = JMeterUtils.getPropDefault("system.properties", ""); //$NON-NLS-1$
         if (sysProp.length() > 0) {
             File file = JMeterUtils.findFile(sysProp);
             if (file.canRead()) {
                 try (FileInputStream fis = new FileInputStream(file)) {
                     System.getProperties().load(fis);
                 } catch (IOException e) {
-                    e.printStackTrace();
                 }
             }
         }
 
-        jmeterProps.put("jmeter.version",JMeterUtils.getJMeterVersion());
+        jmeterProps.put("jmeter.version", JMeterUtils.getJMeterVersion());
     }
 
     /**
      * 为调试模式动态设置Jmeter的结果文件格式，让jtl包含必要的调试信息。
-     * 这些信息会显著影响压力机性能，所以仅供调试使用。同时这些配置仅对当前进程即master节点生效。
+     * 这些信息会显著影响压力机性能，所以仅供调试使用。
+     * 同时这些配置仅对当前进程即master节点生效。
      */
     public void setJmeterOutputFormat() {
         Properties jmeterProps = JMeterUtils.getJMeterProperties();
-        jmeterProps.put("jmeter.save.saveservice.label","true");
+        jmeterProps.put("jmeter.save.saveservice.label", "true");
         jmeterProps.put("jmeter.save.saveservice.response_data", "true");
         jmeterProps.put("jmeter.save.saveservice.response_data.on_error", "true");
         jmeterProps.put("jmeter.save.saveservice.response_message", "true");
@@ -350,10 +345,10 @@ public class StressTestUtils {
      * 为测试报告和调试报告提供的删除jmx的生成目录方法。
      * 如果删除的测试报告是测试脚本唯一的测试报告，则将目录也一并删除。
      */
-    public void deleteJmsDir(String reportPath) {
+    public void deleteJmxDir(String reportPath) {
         try {
-            String jmsDir = reportPath.substring(0, reportPath.lastIndexOf(File.separator));
-            File jmxDirFile = new File(jmsDir);
+            String jmxDir = reportPath.substring(0, reportPath.lastIndexOf(File.separator));
+            File jmxDirFile = new File(jmxDir);
             if (FileUtils.sizeOf(jmxDirFile) == 0L) {
                 FileUtils.forceDelete(jmxDirFile);
             }
@@ -364,12 +359,11 @@ public class StressTestUtils {
         }
     }
 
-    public void pause(long ms) {
+    public void pause(long ms){
         try {
             TimeUnit.MILLISECONDS.sleep(ms);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
     }
-
 }

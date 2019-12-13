@@ -84,7 +84,7 @@ public class StressTestReportsServiceImpl implements StressTestReportsService {
             }
             deleteReportCSV(stressTestReport);
             deleteReportZip(stressTestReport);
-            stressTestUtils.deleteJmsDir(reportPath);
+            stressTestUtils.deleteJmxDir(reportPath);
         });
         stressTestReportsDao.deleteBatch(reportIds);
     }
@@ -221,6 +221,7 @@ public class StressTestReportsServiceImpl implements StressTestReportsService {
     @Override
     @Async("asyncServiceExecutor")
     public void createReport(StressTestReportsEntity stressTestReport) {
+        logger.info("开始生成测试报告");
         String casePath = stressTestUtils.getCasePath();
         String reportName = stressTestReport.getReportName();
 

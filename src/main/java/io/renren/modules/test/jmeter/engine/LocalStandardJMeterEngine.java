@@ -146,7 +146,9 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
         return stopThread(threadName,true);
     }
 
+    //根据ThreadName停止线程的执行:分两种情况立即停止和非立即停止，根据第二个参数的值决定
     private static boolean stopThread(String threadName, boolean now) {
+        log.info("开始停止线程的执行");
         if (engine == null) {
             return false; //e.g. not yet started
         }
@@ -163,6 +165,8 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
 
     /**
      * 是为了修改的这个方法，将TestPlan替换成JmeterTestPlan
+     * HashTree是JMeter执行测试依赖的数据结构，configure在执行测试之前进行配置测试数据。
+     * 可以参考接口JMeterEngine的实现类StandardJMeterEngine
      * @param testTree
      */
     @Override
@@ -179,7 +183,7 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
         testTree.traverse(jmeterTestPlan);
         Object[] plan = jmeterTestPlan.getSearchResults().toArray();
         if (plan.length == 0) {
-            log.info("测试计划内容==0");
+            log.info("测试计划对象数组长度==0");
             throw new RuntimeException("Could not find the TestPlan class!");
         }
         JmeterTestPlan tp = (JmeterTestPlan) plan[0];
@@ -189,12 +193,17 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
         serialized = tp.isSerialized();
         tearDownOnShutdown = tp.isTearDownOnShutdown();
         active = true;
+        log.info("引擎有效的标识:" + active);
         test = testTree;
     }
 
+    /**
+     * 调用该方法用来执行测试。参考StandardJMeterEngine的实现
+     * 启动一个线程并触发它的run()方法，若报异常则调用stopTest()，抛出JMeterEngineException
+     */
     @Override
     public void runTest() throws JMeterEngineException {
-        log.info("进入runTest()");
+        log.info("进入LocalStandardJMeterEngine.runTest()");
         if (host != null) {
             long now = System.currentTimeMillis();
             log.info("Starting the test on host " + host + " @ " + new Date(now) +" (" +now+") ");//NOSONAR Intentional
@@ -202,6 +211,7 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
         try {
             Thread runningThread = new Thread(this, "LocalStandardJMeterEngine");
             runningThread.start();//多线程启动
+            log.info("runningThread多线程start-->run()");
         } catch (Exception err) {
             log.info("进入stopTest");
             stopTest();
@@ -209,6 +219,7 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
         }
     }
 
+    //移除线程组，在run方法里调用
     private void removeThreadGroups(List<?> elements) {
         log.info("开始移除线程组");
         Iterator<?> iter = elements.iterator();
@@ -216,24 +227,31 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
         while (iter.hasNext()) {
             Object item = iter.next();
             if (item instanceof AbstractThreadGroup) {
-                log.info("item instanceof AbstractThreadGroup");
+                log.info("item instanceof AbstractThreadGroup" + item.getClass().getSimpleName());
                 iter.remove();
             } else if (!(item instanceof TestElement)) {
-                log.info("!(item instanceof TestElement)");
+                log.info("!(item instanceof TestElement)" + item.getClass().getSimpleName());
                 iter.remove();
             }
         }
     }
 
+
+    /**
+     * 测试开始通知监听
+     * 其中用到TestStateListener
+     * testStarted:在测试开始之前调用
+     * testEnded:在所有线程测试结束时调用一次
+     */
     private void notifyTestListenersOfStart(SearchByClass<TestStateListener> testListeners) {
-        log.info("通知测试监听器启动");
+        log.info("notifyTestListenersOfStart测试开始通知监听");
         for (TestStateListener tl : testListeners.getSearchResults()) {
             if(tl instanceof TestBean) {
                 log.info("TestStateListener内容：" + tl);
                 TestBeanHelper.prepare((TestElement) tl);
             }
             if (host == null) {
-                log.info("hots地址为:" + host);
+                log.info("hots地址为空:" + host);
                 tl.testStarted();
             }else {
                 log.info("hots地址为:" + host);
@@ -242,13 +260,15 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
         }
     }
 
+    //测试结束通知监听
     private void notifyTestListenersOfEnd(SearchByClass<TestStateListener> testListeners) {
+        log.info("notifyTestListenersOfEnd测试结束通知监听");
         log.info("Notifying test listeners of end of test");
         log.info("testListeners测试结果的大小为：" + testListeners.getSearchResults().size());
         for (TestStateListener tl : testListeners.getSearchResults()) {
             try {
                 if (host == null) {
-                    log.info("notifyTestListenersofEnd.host:" + host);
+                    log.info("notifyTestListenersofEnd.host为空:" + host);
                     tl.testEnded();
                 } else {
                     log.info("notifyTestListenersofEnd.host:" + host);
@@ -270,6 +290,9 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
         active = false;
     }
 
+    /**
+     * 重置。在StandardJMeterEngine中就是直接调用stopTest(true).
+     */
     @Override
     public void reset() {
         if (running) {
@@ -285,6 +308,9 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
         stopTest(true);
     }
 
+    /**
+     * 停止测试，若now为true则停止动作立即执行；若为false则停止动作不立即执行，它会等待当前正在执行的测试至少执行完一个iteration。
+     */
     @Override
     public synchronized void stopTest(boolean now) {
         Thread stopThread = new Thread(new LocalStandardJMeterEngine.StopTest(now));
@@ -329,6 +355,7 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
          * @return boolean true if all threads of all Thread Groups stopped
          */
         private boolean verifyThreadStopped() {
+            log.info("进入verifyThreadStopped");
             boolean stoppedAll = true;
             // ConcurrentHashMap does not need synch. here
             for (AbstractThreadGroup threadGroup : groups) {
@@ -358,6 +385,7 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
                 tellThreadGroupsToStop();
                 pause(10L * countStillActiveThreads());
                 boolean stopped = verifyThreadStopped();
+                log.debug("stopped：" + stopped);
                 if (!stopped) { //we totally failed to stop the test
                     log.info("we totally failed to stop the test");
                     if (JMeter.isNonGUI()) {
@@ -386,7 +414,7 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
 
     @Override
     public void run() {
-        log.info("Running the test!");
+        log.info("多线程Running the test!");
         running = true;
 
         /*
@@ -395,6 +423,7 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
          */
         SampleEvent.initSampleVariables();
 
+        log.info("JMeterContextService开始测试");
         JMeterContextService.startTest();
         try {
             PreCompiler compiler = new PreCompiler();
@@ -406,6 +435,7 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
             return; // no point continuing
         }
         /**
+         * 利用SearchByClass解析所有TestStateListener 加入到testList中
          * Notification of test listeners needs to happen after function 函数之后需要通知测试侦听器
          * replacement, but before setting RunningVersion to true. 替换，但在将runningversion设置为true之前。
          */
@@ -421,6 +451,7 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
 
         //TurnElementsOn为所有匹配的节点调用{@link TestElement#setRunningVersion(boolean) setRunningVersion(true)}
         test.traverse(new TurnElementsOn());
+        //触发上一步中解析的testListener的testStarted方法
         notifyTestListenersOfStart(testListeners);
 
         List<?> testLevelElements = new LinkedList<>(test.list(test.getArray()[0]));
@@ -448,6 +479,7 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
         Iterator<AbstractThreadGroup> iter = searcher.getSearchResults().iterator();
         Iterator<PostThreadGroup> postIter = postSearcher.getSearchResults().iterator();
 
+        //实例化一个ListenerNotifier实例，用来通知事件发生
         ListenerNotifier notifier = new ListenerNotifier();
 
         int groupCount = 0;
@@ -456,6 +488,7 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
          */
         JMeterContextService.clearTotalThreads();
 
+        //启动所有SetupThreadGroup(一般情况下没有SetupThreadGroup)并等待到都结束
         if (setupIter.hasNext()) {
             log.info("Starting setUp thread groups");
             while (running && setupIter.hasNext()) { //for each setup thread group
@@ -472,7 +505,7 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
             }
             log.info("Waiting for all setup thread groups to exit");
             //wait for all Setup Threads To Exit
-            waitThreadStopped();
+            waitThreadsStopped();
             log.info("All Setup Threads have ended");
             groupCount=0;
             JMeterContextService.clearTotalThreads();
@@ -488,14 +521,16 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
          * 这一点都没有坏处（只是稍微推迟了测试的开始时间）
          * 而在测试中过早地命中一个可能会损害短期测试的结果
          */
+        log.info("JMeterUtils.helpGC 进行一次gc后 开始跑真正的测试");
         JMeterUtils.helpGC();
 
         //JMeterContextService.getContext()提供对当前线程上下文的访问权限
         //setSamplingStarted(true)表示由jmeter内部调用，不要直接调用它(true:标记采样是否已开始)
         JMeterContextService.getContext().setSamplingStarted(true);
         boolean mainGroups = running;//still running at this point,i.e. setUp was not cancelled
+        //等待所有的ThreadGroup结束
         while (running && iter.hasNext()) {//for each thread group
-            log.info("running && iter.hasNext()");
+            log.info("running && iter.hasNext()-->等待所有的ThreadGroup结束");
             AbstractThreadGroup group = iter.next();
             //ignore Setup and Post here. We could have filtered the searcher.忽略设置并在此处发布。我们可以过滤搜索者。
             //but then future Thread Group objects wouldn't execute.但以后的线程组对象将不会执行
@@ -525,9 +560,10 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
         }
 
         //wait for all Test Threads To Exit
-        waitThreadStopped();
+        waitThreadsStopped();
         groups.clear();//The groups have all completed now
 
+        //若有 PostThreadGroup（一般没有），执行所有的PostThreadGroup并等待至所有PostThreadGroup结束
         if (postIter.hasNext()) {
             groupCount = 0;
             JMeterContextService.clearTotalThreads();
@@ -548,11 +584,16 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
                     group.waitThreadsStopped();
                 }
             }
-            waitThreadStopped();//wait for Post threads to stop
+            waitThreadsStopped();//wait for Post threads to stop
         }
 
+        /**触发第三步中解析的testListener的testEnded方法：
+         * JavaSampler会调用真正跑的AbstractJavaSamplerClient的teardownTest方法，可以打印该JavaSamplerClient测试总共花费的时间；
+         * ResultCollector用来将测试结果写如文件生成；reportTestPlan用来关闭文件
+         */
         notifyTestListenersOfEnd(testListeners);
         JMeterContextService.endTest();
+        log.info("JMeterContextService测试结束");
         if (JMeter.isNonGUI() && SYSTEM_EXIT_FORCED) {
             log.info("Forced JVM shutdown requested at end of test");
             System.exit(0);// NOSONAR Intentional
@@ -597,8 +638,8 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
     /**
      * Wait for Group Threads to stop
      */
-    private void waitThreadStopped() {
-        log.info("Wait for Group Threads to stop");
+    private void waitThreadsStopped() {
+        log.info("Wait for Group Threads to stop 等待线程停止，run方法中调用");
         //ConcurrentHashMap does not need synch. here
         for (AbstractThreadGroup threadGroup : groups) {
             threadGroup.waitThreadsStopped();
@@ -615,9 +656,9 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
     }
 
     /**
-     * Remote exit
-     * Called by RemoteJMeterEngineImpl.rexit()
-     * and by notifyTestListenersOfEnd() iff exitAfterTest is true;
+     * Remote exit 是为Remote Test准备的
+     * Called by RemoteJMeterEngineImpl.rexit() 被RemoteJMeterEngineImpl.rexit()调用
+     * and by notifyTestListenersOfEnd() iff exitAfterTest is true; exitAfterTest为真时被notifyTestListenersOfEnd()调用 ;
      * in turn that is called by the run() method and the StopTest class
      * also called
      */
@@ -649,14 +690,25 @@ public class LocalStandardJMeterEngine extends StandardJMeterEngine {
         }
     }
 
+    /**
+     * 设置属性，可以将额外的配置文件通过该方法添加进去。
+     * 它会保存在JMeterUtils中，该类保存了JMeterEngine runtime所需要的所有配置参数。
+     */
     @Override
     public void setProperties(Properties p) {
         log.info("Applying properties {}",p);
         JMeterUtils.getJMeterProperties().putAll(p);
     }
 
+    //引擎是否有效的标识，在测试结束时设为false
+    /**
+     * 在confgiure()的时候设该值为true，在执行完测试(指的是该JMeterEngine所有ThreadGroup)之后设置为false。
+     * 如果active==true，则说明该JMeterEngine已经配置完测试并且还没执行完，我们不能再进行configure或者runTest了；
+     * 若active == false, 则该JMeterEngine是空闲的，我们可以重新配置HashTree，执行新的测试.
+     */
     @Override
     public boolean isActive() {
+        log.info("在测试结束时,将引擎有效标识设为false");
         return active;
     }
 

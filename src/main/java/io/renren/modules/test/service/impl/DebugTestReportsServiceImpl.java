@@ -83,7 +83,7 @@ public class DebugTestReportsServiceImpl implements DebugTestReportsService {
                 throw new RRException("删除测试报告文件异常失败", e);
             }
             deleteReportJTL(debugTestReport);
-            stressTestUtils.deleteJmsDir(reportPath);
+            stressTestUtils.deleteJmxDir(reportPath);
         });
         debugTestReportsDao.deleteBatch(reportIds);
     }

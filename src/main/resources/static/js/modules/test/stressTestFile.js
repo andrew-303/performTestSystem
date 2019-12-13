@@ -231,7 +231,31 @@ var vm = new Vue({
                 return;
             }
 
-            confirm('确定要删除选中的记录？', function () {
+            myConfirm('确定要删除选中的记录','取消','确定','1',function(res){
+                console.log(res);
+                if(res.status){
+                    //用户点击确定
+                    $.ajax({
+                        type: "POST",
+                        url: baseURL + "test/stressFile/delete",
+                        contentType: "application/json",
+                        data: JSON.stringify(fileIds),
+                        success: function (r) {
+                            if (r.code == 0) {
+                                // alert('操作成功', function () {
+                                    vm.reload();
+                                // });
+                            } else {
+                                alert(r.msg);
+                            }
+                        }
+                    });
+                }else {
+                    //用户点击取消
+                }
+            });
+
+            /*confirm('确定要删除选中的记录？', function () {
                 $.ajax({
                     type: "POST",
                     url: baseURL + "test/stressFile/delete",
@@ -247,7 +271,7 @@ var vm = new Vue({
                         }
                     }
                 });
-            });
+            });*/
         },
         back: function () {
             history.go(-1);
@@ -498,8 +522,10 @@ var xAxisData = [];
 var fileIdData;
 
 function startInterval(fileId) {
+    console.log("fileId:" + fileId);
     // 如果是多个脚本同时运行，切换监控页面时会发生这种情况。
     if (fileIdData > 0 && fileIdData != fileId) {
+        console.log("如果是多个脚本同时运行，切换监控页面时会发生这种情况");
         clearEcharts();
     }
     fileIdData = fileId;
@@ -510,9 +536,11 @@ function startInterval(fileId) {
             // if (Object.keys(responseTimeMap).length  === 0) {
             //     return;
             // }
+            console.log("responseTimeMap: " + responseTimeMap);
 
             // 如果不是正在执行，则不再刷新前端
             if (r.statInfo.runStatus !== 1) {
+                console.log("没有正在执行的测试");
                 return;
             }
 
@@ -524,6 +552,7 @@ function startInterval(fileId) {
             var threadCountsMap = r.statInfo.threadCountsMap;
             var totalCountsMap = r.statInfo.totalCountsMap;
             xAxisData.push(new Date().toLocaleTimeString());
+            console.log("throughputMap: " + throughputMap);
 
             var responseTimesEChartOption = getOptionLine(responseTimeMap, responseTimeLegendData, responseTimeDataObj, null);
             var getThroughputMapOption = getOptionLine(throughputMap, throughputLegendData, throughputDataObj, null);

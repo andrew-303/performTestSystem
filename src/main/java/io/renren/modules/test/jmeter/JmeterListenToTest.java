@@ -134,6 +134,7 @@ public class JmeterListenToTest implements TestStateListener,Runnable, Remoteabl
      * 所以此方法仅作为保留。
      */
     public void generateReport() {
+        log.info("开始生成报告");
         if (reportGenerator != null) {
             try {
                 log.info("Generating Dashboard");
@@ -150,14 +151,17 @@ public class JmeterListenToTest implements TestStateListener,Runnable, Remoteabl
      * if JVM does not exit, lists remaining non-daemon threads on stdout.
      */
     private void checkForRemainingThreads() {
+        log.info("进入checkForRemainingThreads()方法");
         //This cannot be a JMeter class varible,because properties
         //are not initialised until later.
         //由于系统集成了Jmeter的配置文件架构，所以此处可以这么引用。
         //未来如果引用新的配置文件，此处需要修改。
         final int pauseToCheckForRemainingThreads =
                 JMeterUtils.getPropDefault("jmeter.exit.check.pause", 2000); // $NON-NLS-1$
+        log.info("pauseToCheckForRemainingThreads为：" + pauseToCheckForRemainingThreads);
 
         if (pauseToCheckForRemainingThreads > 0) {
+            log.info("进入多线程处理 Allow enough time for JVM to exit");
             Thread daemon = new Thread(() -> {
                 try {
                     TimeUnit.MILLISECONDS.sleep(pauseToCheckForRemainingThreads);//Allow enough time for JVM to exit
@@ -183,6 +187,7 @@ public class JmeterListenToTest implements TestStateListener,Runnable, Remoteabl
      * 分布式处理会复杂，先考虑单机
      */
     private void updateEndStatus() {
+        log.info("updateEndStatus更新状态");
         //延时两秒，是为了给前端监控返回完整的数据。
         //要不然直接停止设置停止状态后，前端监控就会立即停止更新
         //有可能丢掉一次内容数据

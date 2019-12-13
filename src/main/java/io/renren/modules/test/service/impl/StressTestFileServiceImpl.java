@@ -235,11 +235,14 @@ public class StressTestFileServiceImpl implements StressTestFileService {
     @Override
     @Transactional
     public void update(StressTestFileEntity stressTestFile, StressTestReportsEntity stressTestReports) {
+        logger.debug("修改stressTestFile");
         update(stressTestFile);
         if (stressTestReports != null) {
             if (stressTestReports instanceof DebugTestReportsEntity) {
+                logger.debug("修改DebugTestReportsEntity");
                 debugTestReportsDao.update((DebugTestReportsEntity) stressTestReports);
             } else {
+                logger.debug("修改stressTestReports");
                 stressTestReportsDao.update(stressTestReports);
             }
         }
@@ -426,7 +429,9 @@ public class StressTestFileServiceImpl implements StressTestFileService {
         //保存文件的执行状态，用于前台提示及后端查看排序。
         //脚本基本执行无异常，才会保存状态入库。
         stressTestFile.setStatus(StressTestUtils.RUNNING);
+        logger.debug("开始更新stressTestFile");
         update(stressTestFile);
+        logger.debug("结束更新stressTestFile");
 
         if (stressTestReports != null) {
             //将调试测试报告放到调试的数据表中记录
@@ -563,8 +568,10 @@ public class StressTestFileServiceImpl implements StressTestFileService {
                     jmeterResultCollector.getSaveConfig().setAsXml(true);
                 }
 
+                logger.info("开始设置jmeterResultCollector测试结果文件名，csv文件的真实路径:" + csvFile.getPath());
                 jmeterResultCollector.setFilename(csvFile.getPath());
                 jmxTree.add(jmxTree.getArray()[0],jmeterResultCollector);
+                logger.info("已完成jmeterResultCollector添加进jmxTree");
             }
 
             //增加程序执行结束的监控
@@ -722,6 +729,7 @@ public class StressTestFileServiceImpl implements StressTestFileService {
      */
     @Override
     public void stopLocal(Long filedId, JmeterRunEntity jmeterRunEntity) {
+        logger.info("停止内核Jmeter-core方式执行的脚本");
         StressTestFileEntity stressTestFile = jmeterRunEntity.getStressTestFile();
         StressTestReportsEntity stressTestReports = jmeterRunEntity.getStressTestReports();
         JmeterResultCollector jmeterResultCollector = jmeterRunEntity.getJmeterResultCollector();
@@ -731,10 +739,12 @@ public class StressTestFileServiceImpl implements StressTestFileService {
         //全面停止之前将测试报告文件从缓存刷到磁盘上去。
         //避免多脚本执行时停止其中一个脚本而测试报告文件不完整。
         if (jmeterResultCollector != null) {
+            logger.info("jmeterResultCollector不为空");
             //如果关闭报告，则为null
             jmeterResultCollector.flushFile();
         }
         if (stressTestReports != null && stressTestReports.getFile().exists()) {
+            logger.debug("测试报告不为空并且文件存在：" + stressTestReports.getFile().getAbsolutePath());
             stressTestReports.setFileSize(FileUtils.sizeOf(stressTestReports.getFile()));
         }
         update(stressTestFile,stressTestReports);
@@ -822,8 +832,10 @@ public class StressTestFileServiceImpl implements StressTestFileService {
 
     @Override
     public JmeterStatEntity getJmeterStatEntity(Long fileId) {
+        logger.debug("进入：getJmeterStatEntity,fileId:" + fileId);
         //每次调用都是一个全新的对象。不过这个对象仅用于前端返回，直接可以垃圾回收掉。
         if (StringUtils.isNotEmpty(getSlaveIPPort())) {
+            logger.debug("getSlaveIPPort不为空");
             return new JmeterStatEntity(fileId,0L);
         }
         return new JmeterStatEntity(fileId,null);
