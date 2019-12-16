@@ -277,7 +277,30 @@ var vm = new Vue({
             history.go(-1);
         },
         stopAll: function () {
-            confirm('确定要停止所有执行中的脚本？', function () {
+            myConfirm('确定要停止所有执行中脚本','取消','确定','1',function(res){
+                console.log(res);
+                if(res.status){
+                    //用户点击确定
+                    $.ajax({
+                        type: "POST",
+                        url: baseURL + "test/stressFile/stopAll",
+                        contentType: "application/json",
+                        data: "",
+                        success: function (r) {
+                            if (r.code == 0) {
+                                //alert('操作成功', function () {
+                                    vm.reload();
+                                //});
+                            } else {
+                                alert(r.msg);
+                            }
+                        }
+                    });
+                }else {
+                    //用户点击取消
+                }
+            });
+            /*confirm('确定要停止所有执行中的脚本？', function () {
                 $.ajax({
                     type: "POST",
                     url: baseURL + "test/stressFile/stopAll",
@@ -293,7 +316,7 @@ var vm = new Vue({
                         }
                     }
                 });
-            });
+            });*/
         },
         stopAllNow: function () {
             confirm('确定要立即停止所有脚本？', function () {

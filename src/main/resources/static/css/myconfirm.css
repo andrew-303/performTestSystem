@@ -12,7 +12,7 @@
 }
 .cover .confirmbox {
   background: #fff;
-  width: 20.02rem;
+  width: 20.50rem;
   height: 10.36rem;
   position: fixed;
   top: 0;
@@ -29,7 +29,7 @@
   border-bottom: #dfdfdf solid 1px;
 }
 .cover .confirmbox .line2 {
-  line-height: 2.88rem;
+  line-height: 3.88rem;
   display: flex;
   justify-content: space-around;
   font-size: 1.52rem;
@@ -40,6 +40,6 @@
   text-align: center;
 }
 .cover .confirmbox .line2 .sure {
-  color: #D2AA72;
+  color: #0d5aa7;
   border-left: #dfdfdf solid 1px;
 }
