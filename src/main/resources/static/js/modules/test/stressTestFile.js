@@ -14,9 +14,9 @@ $(function () {
                         return value;
                     }
                     if (row.debugStatus == 1)
-                        return "<a href='/modules/test/debugTestReports.html?CaseID=" + row.caseId + "' title='"+value+" 调试报告'>" + value + "</a>";
+                        return "<a href='"+ baseURL  +"/modules/test/debugTestReports.html?CaseID=" + row.caseId + "' title='"+value+" 调试报告'>" + value + "</a>";
                     else
-                        return "<a href='/modules/test/stressTestReports.html?CaseID=" + row.caseId + "' title='"+value+" 测试报告'>" + value + "</a>";
+                        return "<a href='"+ baseURL  +"/modules/test/stressTestReports.html?CaseID=" + row.caseId + "' title='"+value+" 测试报告'>" + value + "</a>";
                 }
             },
             {
@@ -417,7 +417,7 @@ var vm = new Vue({
             }
         },
         queryTask: function () {
-            window.location.href = "/modules/job/schedule.html?BeanName=stressTestTask";
+            window.location.href = baseURL + "/modules/job/schedule.html?BeanName=stressTestTask";
         },
         saveTask: function () {
             if(1 == vm.stressTestFile.cronEditType){
