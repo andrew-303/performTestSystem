@@ -1,25 +1,21 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 package io.renren.modules.test.jmeter.report;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.jmeter.JMeter;
-import org.apache.jmeter.report.config.ConfigurationException;
-import org.apache.jmeter.report.config.ExporterConfiguration;
-import org.apache.jmeter.report.config.GraphConfiguration;
-import org.apache.jmeter.report.config.ReportGeneratorConfiguration;
-import org.apache.jmeter.report.core.*;
-import org.apache.jmeter.report.dashboard.DataExporter;
-import org.apache.jmeter.report.dashboard.ExportException;
-import org.apache.jmeter.report.dashboard.GenerationException;
-import org.apache.jmeter.report.dashboard.ReportGenerator;
-import org.apache.jmeter.report.processor.*;
-import org.apache.jmeter.report.processor.graph.AbstractGraphConsumer;
-import org.apache.jmeter.reporters.ResultCollector;
-import org.apache.jmeter.samplers.SampleSaveConfiguration;
-import org.apache.jmeter.util.JMeterUtils;
-import org.apache.oro.text.regex.Perl5Matcher;
-import org.aspectj.bridge.IMessage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -28,36 +24,75 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Properties;
-import java.util.logging.Filter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.codehaus.groovy.classgen.AsmClassGenerator.setProperty;
-
+import org.apache.commons.io.FileUtils;
+import org.apache.jmeter.JMeter;
+import org.apache.jmeter.report.config.ConfigurationException;
+import org.apache.jmeter.report.config.ExporterConfiguration;
+import org.apache.jmeter.report.config.GraphConfiguration;
+import org.apache.jmeter.report.config.ReportGeneratorConfiguration;
+import org.apache.jmeter.report.core.ControllerSamplePredicate;
+import org.apache.jmeter.report.core.ConvertException;
+import org.apache.jmeter.report.core.Converters;
+import org.apache.jmeter.report.core.SampleException;
+import org.apache.jmeter.report.core.StringConverter;
+import org.apache.jmeter.report.dashboard.DataExporter;
+import org.apache.jmeter.report.dashboard.ExportException;
+import org.apache.jmeter.report.dashboard.GenerationException;
+import org.apache.jmeter.report.processor.AbstractSampleConsumer;
+import org.apache.jmeter.report.processor.AggregateConsumer;
+import org.apache.jmeter.report.processor.ApdexSummaryConsumer;
+import org.apache.jmeter.report.processor.ApdexThresholdsInfo;
+import org.apache.jmeter.report.processor.CsvFileSampleSource;
+import org.apache.jmeter.report.processor.ErrorsSummaryConsumer;
+import org.apache.jmeter.report.processor.FilterConsumer;
+import org.apache.jmeter.report.processor.MaxAggregator;
+import org.apache.jmeter.report.processor.MinAggregator;
+import org.apache.jmeter.report.processor.NormalizerSampleConsumer;
+import org.apache.jmeter.report.processor.RequestsSummaryConsumer;
+import org.apache.jmeter.report.processor.SampleConsumer;
+import org.apache.jmeter.report.processor.SampleContext;
+import org.apache.jmeter.report.processor.SampleSource;
+import org.apache.jmeter.report.processor.StatisticsSummaryConsumer;
+import org.apache.jmeter.report.processor.Top5ErrorsBySamplerConsumer;
+import org.apache.jmeter.report.processor.graph.AbstractGraphConsumer;
+import org.apache.jmeter.reporters.ResultCollector;
+import org.apache.jmeter.samplers.SampleSaveConfiguration;
+import org.apache.jmeter.util.JMeterUtils;
+import org.apache.oro.text.regex.PatternMatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * The class ReportGenerator provides a way to generate all the templated files of the plugin.
+ * The class ReportGenerator provides a way to generate all the templated files
+ * of the plugin.
  *
- * 修改了源码的ReportGenerator.原因是在并发执行生成测试报告时，源码无法满足要求。
+ * 修改了源码的ReportGenerator。原因是在并发执行生成测试报告时，源码无法满足要求。
  * 以5.1.1版本的源码进行修改，并做了向下兼容（以兼容5.x和4.x的报告生成）
  * 源码在最后生成html文件时会从系统变量中找到并检验测试报告的保存路径，而如果不修改源码，
  * 则需要一开始就设置保存路径，在并发时，之后的操作会将这个路径覆盖掉导致报错。
  *
  * 当前的修改面对超高并发生成测试报告仍然有问题，但是一般的并发执行是没问题的。
- * 即便发生问题，仅会日志打印异常，并不会造成其他影响。
+ * 即便发生并发问题，仅会日志打印异常，并不会造成其它影响。
+ *
  */
 public class LocalReportGenerator {
     private static final String REPORTGENERATOR_PROPERTIES = "reportgenerator.properties";
 
-    private static final Logger log = LoggerFactory.getLogger(ReportGenerator.class);
+    private static final Logger log = LoggerFactory.getLogger(org.apache.jmeter.report.dashboard.ReportGenerator.class);
 
     private static final boolean CSV_OUTPUT_FORMAT = "csv"
-            .equalsIgnoreCase(JMeterUtils.getPropDefault("jmeter.save.saveservice.output_format","csv"));
+            .equalsIgnoreCase(JMeterUtils.getPropDefault(
+                    "jmeter.save.saveservice.output_format", "csv"));
 
     private static final char CSV_DEFAULT_SEPARATOR =
-            //we cannot use JMeterUtils#getPropDefault as it applies a trim on value
-            JMeterUtils.getDelimiter(JMeterUtils.getJMeterProperties()
-                    .getProperty(SampleSaveConfiguration.DEFAULT_DELIMITER_PROP, SampleSaveConfiguration.DEFAULT_DELIMITER))
+            // We cannot use JMeterUtils#getPropDefault as it applies a trim on value
+            JMeterUtils
+                    .getDelimiter(JMeterUtils.getJMeterProperties().getProperty(
+                            SampleSaveConfiguration.DEFAULT_DELIMITER_PROP,
+                            SampleSaveConfiguration.DEFAULT_DELIMITER))
                     .charAt(0);
 
     private static final String INVALID_CLASS_FMT = "Class name \"%s\" is not valid.";
@@ -95,31 +130,35 @@ public class LocalReportGenerator {
      *            Can be null, used if generation occurs at end of test
      * @throws ConfigurationException when loading configuration from file fails
      */
-    public LocalReportGenerator(String resultsFile,ResultCollector resultCollector) throws ConfigurationException {
+    public LocalReportGenerator(String resultsFile, ResultCollector resultCollector)
+            throws ConfigurationException {
         if (!CSV_OUTPUT_FORMAT) {
             throw new IllegalArgumentException(
                     "Report generation requires csv output format, check 'jmeter.save.saveservice.output_format' property");
         }
-        log.info("ReportGenerator will use for Parsing the separator: '{}'",CSV_DEFAULT_SEPARATOR);
+
+        log.info("ReportGenerator will use for Parsing the separator: '{}'", CSV_DEFAULT_SEPARATOR);
+
         File file = new File(resultsFile);
         if (resultCollector == null) {
-            if(!(file.isFile() && file.canRead())) {
+            if (!(file.isFile() && file.canRead())) {
                 throw new IllegalArgumentException(String.format(
-                        "Cannot read test results file : %s",file));
+                        "Cannot read test results file : %s", file));
             }
-            log.info("Will only generate report from results file:{}",resultsFile);
+            log.info("Will only generate report from results file: {}", resultsFile);
         } else {
             if (file.exists() && file.length() > 0) {
-                throw new IllegalArgumentException("Results file:" + resultsFile + " is not empty");
+                throw new IllegalArgumentException("Results file:"
+                        + resultsFile + " is not empty");
             }
-            log.info("will generator report at end of test from results file:{}",resultsFile);
+            log.info("Will generate report at end of test from  results file: {}", resultsFile);
         }
         this.resultCollector = resultCollector;
         this.testFile = file;
         final Properties merged = new Properties();
         File rgp = new File(JMeterUtils.getJMeterBinDir(), REPORTGENERATOR_PROPERTIES);
-        if (log.isInfoEnabled()) {
-            log.info("Reading report generator properties from :{}",rgp.getAbsolutePath());
+        if(log.isInfoEnabled()) {
+            log.info("Reading report generator properties from: {}", rgp.getAbsolutePath());
         }
         merged.putAll(loadProps(rgp));
         log.info("Merging with JMeter properties");
@@ -130,10 +169,10 @@ public class LocalReportGenerator {
     private static Properties loadProps(File file) {
         final Properties props = new Properties();
         try (FileInputStream inStream = new FileInputStream(file)) {
-          props.load(inStream);
+            props.load(inStream);
         } catch (IOException e) {
-            log.error("Problem loading properties from file." ,e);
-            System.err.println("Problem loading properties." + e);//NOSONAR
+            log.error("Problem loading properties from file.", e);
+            System.err.println("Problem loading properties. " + e); // NOSONAR
         }
         return props;
     }
@@ -146,15 +185,15 @@ public class LocalReportGenerator {
      * E.g : with key set_granularity, returns setGranularity (camel case)
      * </p>
      *
-     * @param propertyKey the property key
+     * @param propertyKey
+     *            the property key
      * @return the name of the property setter
      */
     private static String getSetterName(String propertyKey) {
-        //创建将根据此模式匹配给定输入的匹配器。
         Matcher matcher = POTENTIAL_CAMEL_CASE_PATTERN.matcher(propertyKey);
         StringBuffer buffer = new StringBuffer(); // NOSONAR Unfortunately Matcher does not support StringBuilder
         while (matcher.find()) {
-            matcher.appendReplacement(buffer,matcher.group(1).toUpperCase());
+            matcher.appendReplacement(buffer, matcher.group(1).toUpperCase());
         }
         matcher.appendTail(buffer);
         return buffer.toString();
@@ -162,10 +201,13 @@ public class LocalReportGenerator {
 
     /**
      * Generate dashboard reports using the data from the specified CSV File.
-     *
-     * @throws GenerationException when the generation failed
+     * smooth00 fix
+
+     * @throws GenerationException
+     *             when the generation failed
      */
     public void generate(String reportPathDir) throws GenerationException {
+
         if (resultCollector != null) {
             log.info("Flushing result collector before report Generation");
             resultCollector.flushFile();
@@ -175,7 +217,7 @@ public class LocalReportGenerator {
         File tmpDir = configuration.getTempDirectory();
         boolean tmpDirCreated = createTempDir(tmpDir);
 
-        //Build consumers chain
+        // Build consumers chain
         SampleContext sampleContext = new SampleContext();
         sampleContext.setWorkingDirectory(tmpDir);
         SampleSource source = new CsvFileSampleSource(testFile, CSV_DEFAULT_SEPARATOR);
@@ -190,53 +232,60 @@ public class LocalReportGenerator {
 
         FilterConsumer nameFilter = createNameFilter();
 
-        FilterConsumer excludeControllerFilter =  createExcludeControllerFilter();
+        FilterConsumer excludeControllerFilter = createExcludeControllerFilter();
+
         nameFilter.addSampleConsumer(excludeControllerFilter);
-        dateRangeConsumer.addSampleConsumer(excludeControllerFilter);
+
+        dateRangeConsumer.addSampleConsumer(nameFilter);
 
         normalizer.addSampleConsumer(dateRangeConsumer);
+
         source.addSampleConsumer(normalizer);
 
-        //Get gragh configurations
-        Map<String, GraphConfiguration> graphConfigurations = configuration.getGraphConfigurations();
+        // Get graph configurations
+        Map<String, GraphConfiguration> graphConfigurations = configuration
+                .getGraphConfigurations();
 
-        log.info("Jmeter Engine Version: v" + JMeterUtils.getJMeterVersion());
-        //Process configuration to build gragh consumers
-        for (Map.Entry<String, GraphConfiguration> entryGraghCfg : graphConfigurations.entrySet()) {
-            addGraghConsumer(nameFilter,excludeControllerFilter,entryGraghCfg);
+        // smooth00 add
+        log.info("Jmeter Engine Version: v"+JMeterUtils.getJMeterVersion());
+        // Process configuration to build graph consumers
+        for (Map.Entry<String, GraphConfiguration> entryGraphCfg : graphConfigurations.entrySet()) {
+            addGraphConsumer(nameFilter, excludeControllerFilter, entryGraphCfg);
         }
 
-        //Generator data
+        // Generate data
         log.debug("Start samples processing");
         try {
-            source.run(); //NOSONAR
+            source.run(); // NOSONAR
         } catch (SampleException ex) {
-            throw new GenerationException("Error while processing samples:" + ex.getMessage(),ex);
+            throw new GenerationException("Error while processing samples:"+ex.getMessage(), ex);
         }
         log.debug("End of samples processing");
 
         log.debug("Start data exporting");
 
-        //Process configuration to build data exporters
+        // Process configuration to build data exporters
         String key;
         ExporterConfiguration value;
 
-        JMeterUtils.setProperty(JMeter.JMETER_REPORT_OUTPUT_DIR_PROPERTY,reportPathDir);
+        // smooth00 add
+        JMeterUtils.setProperty(JMeter.JMETER_REPORT_OUTPUT_DIR_PROPERTY, reportPathDir);
 
         for (Map.Entry<String, ExporterConfiguration> entry : configuration.getExportConfigurations().entrySet()) {
             key = entry.getKey();
             value = entry.getValue();
             if (log.isInfoEnabled()) {
-                log.info("Exporting data using exporter:'{}' of className:'{}'",key,value.getClassName());
+                log.info("Exporting data using exporter:'{}' of className:'{}'", key, value.getClassName());
             }
-            exportData(sampleContext,key,value);
+            exportData(sampleContext, key, value);
         }
 
         log.debug("End of data exporting");
 
-        removeTempDir(tmpDir,tmpDirCreated);
+        removeTempDir(tmpDir, tmpDirCreated);
 
-        log.debug("End of report generationg");
+        log.debug("End of report generation");
+
     }
 
     /**
@@ -247,9 +296,9 @@ public class LocalReportGenerator {
         dateRangeFilter.setName(DATE_RANGE_FILTER_CONSUMER_NAME);
         dateRangeFilter.setSamplePredicate(sample -> {
             long sampleStartTime = sample.getStartTime();
-            if (configuration.getStartDate() != null) {
-                if (sampleStartTime >= configuration.getStartDate().getTime()) {
-                    if (configuration.getEndDate() != null) {
+            if(configuration.getStartDate() != null) {
+                if(sampleStartTime >= configuration.getStartDate().getTime()) {
+                    if(configuration.getEndDate() != null) {
                         return sampleStartTime <= configuration.getEndDate().getTime();
                     } else {
                         return true;
@@ -257,7 +306,7 @@ public class LocalReportGenerator {
                 }
                 return false;
             } else {
-                if (configuration.getEndDate() != null) {
+                if(configuration.getEndDate() != null) {
                     return sampleStartTime <= configuration.getEndDate().getTime();
                 } else {
                     return true;
@@ -275,7 +324,7 @@ public class LocalReportGenerator {
             try {
                 FileUtils.deleteDirectory(tmpDir);
             } catch (IOException ex) {
-                log.warn("Cnanot delete created temporary directory, '{}'.",tmpDir,ex);
+                log.warn("Cannot delete created temporary directory, '{}'.", tmpDir, ex);
             }
         }
     }
@@ -285,7 +334,12 @@ public class LocalReportGenerator {
         if (!tmpDir.exists()) {
             tmpDirCreated = tmpDir.mkdir();
             if (!tmpDirCreated) {
-                String message = String.format("Cannot create temporary directory \"%s\".", tmpDir);
+                // smooth00 fix 这句代码改成沿用jmeter4.0的
+                // String message = String.format(
+                //                            "Cannot create temporary directory \"%s\", check property \"%s\"", tmpDir.getAbsolutePath(),
+                //                            ReportGeneratorConfiguration.REPORT_GENERATOR_KEY_TEMP_DIR);
+                String message = String.format(
+                        "Cannot create temporary directory \"%s\".", tmpDir);
 
                 log.error(message);
                 throw new GenerationException(message);
@@ -293,51 +347,57 @@ public class LocalReportGenerator {
         }
         return tmpDirCreated;
     }
+    // smooth00 fix
+    private void addGraphConsumer(FilterConsumer nameFilter,
+                                  FilterConsumer excludeControllerFilter,
+                                  Map.Entry<String, GraphConfiguration> entryGraphCfg)
+            throws GenerationException {
+        String graphName = entryGraphCfg.getKey();
+        GraphConfiguration graphConfiguration = entryGraphCfg.getValue();
 
-    private void addGraghConsumer(FilterConsumer nameFilter,FilterConsumer excludeControllerFilter,
-                                  Map.Entry<String,GraphConfiguration> entryGraghCfg) throws GenerationException {
-        String graghName = entryGraghCfg.getKey();
-        GraphConfiguration graphConfiguration = entryGraghCfg.getValue();
-
-        //Instantiate the class from the classname
+        // Instantiate the class from the classname
         String className = graphConfiguration.getClassName();
         try {
-            //通过反射获得类信息
             Class<?> clazz = Class.forName(className);
-            //通过反射获取构造方法并创建一个新实例
             Object obj = clazz.getDeclaredConstructor().newInstance();
-            AbstractGraphConsumer gragh = (AbstractGraphConsumer) obj;
-            gragh.setName(graghName);
+            AbstractGraphConsumer graph = (AbstractGraphConsumer) obj;
+            graph.setName(graphName);
 
-            //Set the gragh title
-            gragh.setTitle(graphConfiguration.getTitle());
+            // Set the graph title
+            graph.setTitle(graphConfiguration.getTitle());
 
-            //Set gragh properties using reflection
+            // Set graph properties using reflection
             Method[] methods = clazz.getMethods();
-            for (Map.Entry<String, String> entryProperty : graphConfiguration.getProperties().entrySet()) {
+            for (Map.Entry<String, String> entryProperty : graphConfiguration
+                    .getProperties().entrySet()) {
                 String propertyName = entryProperty.getKey();
                 String propertyValue = entryProperty.getValue();
                 String setterName = getSetterName(propertyName);
 
-                setProperty(className, obj, methods, propertyName, propertyValue, setterName);
+                setProperty(className, obj, methods, propertyName,
+                        propertyValue, setterName);
             }
-            //这块调用gragh.initialize(),这个方法5.0以前版本没有，所以改成java反射机制动态执行
-            if (Integer.parseInt(String.valueOf(JMeterUtils.getJMeterVersion().charAt(0))) >= 5) {
-                gragh.getClass().getMethod("initialize",new Class[]{}).invoke(gragh,new Object[]{});
+            //这块调用graph.initialize()，这个方法5.0以前版本没有，所以改成java反射机制动态执行
+            if ( Integer.parseInt(String.valueOf(JMeterUtils.getJMeterVersion().charAt(0))) >= 5 ){
+                graph.getClass().getMethod("initialize", new Class[]{}).invoke(graph, new Object[]{});
             }
 
-            //Choose which entry point to use to plug the gragh
-            AbstractSampleConsumer entryPoint = graphConfiguration.excludesControllers() ? excludeControllerFilter : nameFilter;
-            entryPoint.addSampleConsumer(gragh);
+            // Choose which entry point to use to plug the graph
+            AbstractSampleConsumer entryPoint = graphConfiguration
+                    .excludesControllers() ? excludeControllerFilter
+                    : nameFilter;
+            entryPoint.addSampleConsumer(graph);
         } catch (ClassCastException | IllegalArgumentException |  ReflectiveOperationException | SecurityException ex) {
             String error = String.format(INVALID_CLASS_FMT, className);
-            log.error(error,ex);
-            throw new GenerationException(error,ex);
+            log.error(error, ex);
+            throw new GenerationException(error, ex);
         }
     }
 
-    private void exportData(SampleContext sampleContext, String exporterName, ExporterConfiguration exporterConfiguration) throws GenerationException {
-        //Instantiate the class from the classname
+    private void exportData(SampleContext sampleContext, String exporterName,
+                            ExporterConfiguration exporterConfiguration)
+            throws GenerationException {
+        // Instantiate the class from the classname
         String className = exporterConfiguration.getClassName();
         try {
             Class<?> clazz = Class.forName(className);
@@ -345,8 +405,8 @@ public class LocalReportGenerator {
             DataExporter exporter = (DataExporter) obj;
             exporter.setName(exporterName);
 
-            //Export data
-            exporter.export(sampleContext,testFile,configuration);
+            // Export data
+            exporter.export(sampleContext, testFile, configuration);
         } catch (ReflectiveOperationException | ClassCastException ex) {
             String error = String.format(INVALID_CLASS_FMT, className);
             throw new GenerationException(error, ex);
@@ -364,8 +424,10 @@ public class LocalReportGenerator {
 
     private FilterConsumer createExcludeControllerFilter() {
         FilterConsumer excludeControllerFilter = new FilterConsumer();
-        excludeControllerFilter.setName(START_INTERVAL_CONTROLLER_FILTER_CONSUMER_NAME);
-        excludeControllerFilter.setSamplePredicate(new ControllerSamplePredicate());
+        excludeControllerFilter
+                .setName(START_INTERVAL_CONTROLLER_FILTER_CONSUMER_NAME);
+        excludeControllerFilter
+                .setSamplePredicate(new ControllerSamplePredicate());
         excludeControllerFilter.setReverseFilter(true);
         excludeControllerFilter.addSampleConsumer(createErrorsSummaryConsumer());
         return excludeControllerFilter;
@@ -379,22 +441,6 @@ public class LocalReportGenerator {
         return top5ErrorsBySamplerConsumer;
     }
 
-    /**
-     * The class StatisticsSummaryConsumer provides a consumer that calculates:
-     * 提供一个计算的consumer
-     *      <li>total number of samples</li>
-     *      <li>errors</li>
-     *      <li>error %</li>
-     *      <li>mean response time</li>
-     *      <li>percentile 1 (90% by default)</li>
-     *      <li>percentile 2 (95% by default)</li>
-     *      <li>percentile 3 (99% by default)</li>
-     *      <li>throughput</li>
-     *      <li>received bytes per second</li>
-     *      <li>sent bytes per second</li>
-     *      <li>min</li>
-     *      <li>max</li>
-     */
     private StatisticsSummaryConsumer createStatisticsSummaryConsumer() {
         StatisticsSummaryConsumer statisticsSummaryConsumer = new StatisticsSummaryConsumer();
         statisticsSummaryConsumer.setName(STATISTICS_SUMMARY_CONSUMER_NAME);
@@ -420,21 +466,23 @@ public class LocalReportGenerator {
         apdexSummaryConsumer.setHasOverallResult(true);
         apdexSummaryConsumer.setThresholdSelector(sampleName -> {
             ApdexThresholdsInfo info = new ApdexThresholdsInfo();
-            //set default values anyway for safety
-            info.setSatisfiedThreshold(configuration.getApdexSatisfiedThreshold());
-            info.setToleratedThreshold(configuration.getApdexToleratedThreshold());
-            //see if the sample name is in the special cases targeted
-            //by property jmeter.reportgenerator.apdex_per_transaction
-            //key in entry below can be a hardcoded name or a regex
+            // set default values anyway for safety
+            info.setSatisfiedThreshold(configuration
+                    .getApdexSatisfiedThreshold());
+            info.setToleratedThreshold(configuration
+                    .getApdexToleratedThreshold());
+            // see if the sample name is in the special cases targeted
+            // by property jmeter.reportgenerator.apdex_per_transaction
+            // key in entry below can be a hardcoded name or a regex
             for (Map.Entry<String, Long[]> entry : configuration.getApdexPerTransaction().entrySet()) {
                 org.apache.oro.text.regex.Pattern regex = JMeterUtils.getPatternCache().getPattern(entry.getKey());
-                Perl5Matcher matcher = JMeterUtils.getMatcher();
+                PatternMatcher matcher = JMeterUtils.getMatcher();
                 if (sampleName != null && matcher.matches(sampleName, regex)) {
                     Long satisfied = entry.getValue()[0];
                     Long tolerated = entry.getValue()[1];
-                    if (log.isDebugEnabled()) {
-                        log.debug("Found match for sampleName:{},Regex:{},satisfied value:{},tolerated value:{}",
-                                sampleName,entry.getKey(),satisfied,tolerated);
+                    if(log.isDebugEnabled()) {
+                        log.debug("Found match for sampleName:{}, Regex:{}, satisfied value:{}, tolerated value:{}",
+                                sampleName, entry.getKey(), satisfied, tolerated);
                     }
                     info.setSatisfiedThreshold(satisfied);
                     info.setToleratedThreshold(tolerated);
@@ -447,17 +495,19 @@ public class LocalReportGenerator {
     }
 
     /**
-     * @return a {@link FilterConsumer} that filters samples based on their name
+     * @return a {@link FilterConsumer} that filters samplers based on their name
      */
     private FilterConsumer createNameFilter() {
         FilterConsumer nameFilter = new FilterConsumer();
         nameFilter.setName(NAME_FILTER_CONSUMER_NAME);
         nameFilter.setSamplePredicate(sample -> {
-            //Get filtered samples from configuration
-            Pattern filteredSamplesPattern = configuration.getFilteredSamplesPattern();
-            //Sample is kept if no filter is set
-            //or if its name matches the filter pattern
-            return filteredSamplesPattern == null || filteredSamplesPattern.matcher(sample.getName()).matches();
+            // Get filtered samples from configuration
+            Pattern filteredSamplesPattern = configuration
+                    .getFilteredSamplesPattern();
+            // Sample is kept if no filter is set
+            // or if its name matches the filter pattern
+            return filteredSamplesPattern == null
+                    || filteredSamplesPattern.matcher(sample.getName()).matches();
         });
         nameFilter.addSampleConsumer(createApdexSummaryConsumer());
         nameFilter.addSampleConsumer(createRequestsSummaryConsumer());
@@ -471,7 +521,7 @@ public class LocalReportGenerator {
      */
     private AggregateConsumer createEndDateConsumer() {
         AggregateConsumer endDateConsumer = new AggregateConsumer(
-                new MaxAggregator(),sample -> Double.valueOf(sample.getEndTime()));
+                new MaxAggregator(), sample -> Double.valueOf(sample.getEndTime()));
         endDateConsumer.setName(END_DATE_CONSUMER_NAME);
         return endDateConsumer;
     }
@@ -489,52 +539,65 @@ public class LocalReportGenerator {
     /**
      * Try to set a property on an object by reflection.
      *
-     * @param className     name of the objects class
-     * @param obj           the object on which the property should be set
-     * @param methods       methods of the object which will be search for the property
-     *                      setter
-     * @param propertyName  name of the property to be set
-     * @param propertyValue value to be set
-     * @param setterName    name of the property setter that should be used to set the
-     *                      property
-     * @throws IllegalAccessException if reflection throws an IllegalAccessException
-     * @throws GenerationException    if conversion of the property value fails or reflection
-     *                                throws an InvocationTargetException
+     * @param className
+     *            name of the objects class
+     * @param obj
+     *            the object on which the property should be set
+     * @param methods
+     *            methods of the object which will be search for the property
+     *            setter
+     * @param propertyName
+     *            name of the property to be set
+     * @param propertyValue
+     *            value to be set
+     * @param setterName
+     *            name of the property setter that should be used to set the
+     *            property
+     * @throws IllegalAccessException
+     *             if reflection throws an IllegalAccessException
+     * @throws GenerationException
+     *             if conversion of the property value fails or reflection
+     *             throws an InvocationTargetException
      */
     private void setProperty(String className, Object obj, Method[] methods,
                              String propertyName, String propertyValue, String setterName)
-            throws GenerationException, IllegalAccessException {
+            throws IllegalAccessException, GenerationException {
         try {
             int i = 0;
             while (i < methods.length) {
                 Method method = methods[i];
                 if (method.getName().equals(setterName)) {
-                    Class<?>[] parameterTypes = method.getParameterTypes();
+                    Class<?>[] parameterTypes = method
+                            .getParameterTypes();
                     if (parameterTypes.length == 1) {
                         Class<?> parameterType = parameterTypes[0];
-                        if (parameterType.isAssignableFrom(String.class)) {
+                        if (parameterType
+                                .isAssignableFrom(String.class)) {
                             method.invoke(obj, propertyValue);
                         } else {
-                            StringConverter<?> converter = Converters.getConverter(parameterType);
+                            StringConverter<?> converter = Converters
+                                    .getConverter(parameterType);
                             if (converter == null) {
                                 throw new GenerationException(
                                         String.format(
-                                                NOT_SUPPORTED_CONVERSION_FMT, parameterType.getName()));
+                                                NOT_SUPPORTED_CONVERSION_FMT,
+                                                parameterType
+                                                        .getName()));
                             }
                             method.invoke(obj, converter.convert(propertyValue));
                         }
                         return;
                     }
-                } i++;
+                }
+                i++;
             }
-            log.warn("'{}' is not a valid property for class '{}',skip it",propertyName,className);
+            log.warn("'{}' is not a valid property for class '{}', skip it", propertyName, className);
         } catch (InvocationTargetException | ConvertException ex) {
-            String message = String.format("Cannot assign \"%s\" to property \"%s\" (mapped as \"%s\"), skip it",
-                    propertyValue, propertyName, setterName);
-            log.error(message,ex);
-            throw new GenerationException(message,ex);
+            String message = String
+                    .format("Cannot assign \"%s\" to property \"%s\" (mapped as \"%s\"), skip it",
+                            propertyValue, propertyName, setterName);
+            log.error(message, ex);
+            throw new GenerationException(message, ex);
         }
-
     }
-
 }

@@ -217,7 +217,30 @@ function createReport(reportIds) {
     if (!reportIds) {
         return;
     }
-    confirm('文件越大生成报告时间越长,请耐心等待!', function () {
+    myConfirm('确定要生成报告','取消','确定','1',function(res){
+        console.log(res);
+        if(res.status){
+            //用户点击确定
+            $.ajax({
+                type: "POST",
+                url: baseURL + "test/stressReports/createReport",
+                contentType: "application/json",
+                data: JSON.stringify(numberToArray(reportIds)),
+                success: function (r) {
+                    if (r.code == 0) {
+                        vm.reload();
+                        alert('后台正在异步生成!', function () {
+                        });
+                    } else {
+                        alert(r.msg);
+                    }
+                }
+            });
+        }else {
+            //用户点击取消
+        }
+    });
+    /*confirm('文件越大生成报告时间越长,请耐心等待!', function () {
         $.ajax({
             type: "POST",
             url: baseURL + "test/stressReports/createReport",
@@ -233,7 +256,7 @@ function createReport(reportIds) {
                 }
             }
         });
-    });
+    });*/
 }
 
 function checkStatus(status) {

@@ -10,6 +10,8 @@ import io.renren.modules.test.entity.StressTestReportsEntity;
 import io.renren.modules.test.service.StressTestReportsService;
 import io.renren.modules.test.utils.StressTestUtils;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.InputStreamResource;
@@ -28,6 +30,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/test/stressReports")
 public class StressTestReportsController {
+    Logger logger = LoggerFactory.getLogger(getClass());
     @Autowired
     private StressTestReportsService stressTestReportsService;
 
@@ -54,7 +57,7 @@ public class StressTestReportsController {
      * 查询具体测试报告信息
      */
     @RequestMapping("/info/{reportId}")
-    @RequiresPermissions("test:stress:reportId")
+    @RequiresPermissions("test:stress:reportInfo")
     public R info(@PathVariable("reportId") Long reportId) {
         StressTestReportsEntity reportsEntity = stressTestReportsService.queryObject(reportId);
         return R.ok().put("stressCaseReport",reportsEntity);
@@ -103,6 +106,8 @@ public class StressTestReportsController {
     public R createReport(@RequestBody Long[] reportIds) {
         for (Long reportId : reportIds) {
             StressTestReportsEntity stressTestReport = stressTestReportsService.queryObject(reportId);
+            logger.debug("stressTestReport.ReportName:" + stressTestReport.getReportName() + "OriginName:"
+                    + stressTestReport.getOriginName());
 
             //首先判断，如果file_size为0或者空，说明没有结果文件，直接报错打断。
             // if (stressTestReport.getFileSize() == 0L || stressTestReport.getFileSize() == null) {
@@ -110,6 +115,7 @@ public class StressTestReportsController {
             // }
             //如果测试报告文件目录已经存在，说明生成过测试报告，直接打断
             if (StressTestUtils.RUN_SUCCESS.equals(stressTestReport.getStatus())) {
+                logger.info("已经存在测试报告不要重复创建！");
                 throw new RRException("已经存在测试报告不要重复创建！");
             }
             stressTestReportsService.createReport(stressTestReport);

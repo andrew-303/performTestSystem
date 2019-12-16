@@ -63,6 +63,7 @@ public class StressTestReportsServiceImpl implements StressTestReportsService {
 
     @Override
     public void update(StressTestReportsEntity stressCaseReports) {
+        logger.debug("更新StressTestReportsEntity");
         stressTestReportsDao.update(stressCaseReports);
     }
 
@@ -74,7 +75,9 @@ public class StressTestReportsServiceImpl implements StressTestReportsService {
             String casePath = stressTestUtils.getCasePath();
             String reportName = stressTestReport.getReportName();
             //csv结果文件路径
-            String reportPath = casePath + File.separator + reportName;
+            String csvPath = casePath + File.separator + reportName;
+            //测试报告文件目录
+            String reportPath = csvPath.substring(0,csvPath.lastIndexOf("."));
             try {
                 FileUtils.forceDelete(new File(reportPath));
             } catch (FileNotFoundException e) {
@@ -210,6 +213,7 @@ public class StressTestReportsServiceImpl implements StressTestReportsService {
     @Async("asyncServiceExecutor")
     public void createReport(Long[] reportIds) {
         for (Long reportId : reportIds) {
+            logger.debug("reportId: " + reportId);
             StressTestReportsEntity stressTestReport = queryObject(reportId);
             createReport(stressTestReport);
         }
@@ -227,19 +231,25 @@ public class StressTestReportsServiceImpl implements StressTestReportsService {
 
         //csv结果文件路径
         String csvPath = casePath + File.separator + reportName;
+        logger.debug("csv结果文件路径:" + csvPath);
         //测试报告文件目录
         String reportPathDir = csvPath.substring(0, csvPath.lastIndexOf("."));
+        logger.debug("测试报告文件目录:" + reportPathDir);
 
         //修复csv文件
+        logger.debug("开始修复csv文件");
         fixReportFile(csvPath);
+        logger.debug("结束修复csv文件");
 
         //设置开始执行命令生成报告
         stressTestReport.setStatus(StressTestUtils.RUNNING);
         update(stressTestReport);
 
         if (stressTestUtils.isMasterGenerateReport()) {
+            logger.info("stressTestUtils.isMasterGenerateReport()条件成立");
             generateReportLocal(stressTestReport,csvPath,reportPathDir);
         } else {
+            logger.info("stressTestUtils.isMasterGenerateReport()条件不成立");
             generateReportByScript(stressTestReport,csvPath,reportPathDir);
         }
     }
@@ -248,10 +258,13 @@ public class StressTestReportsServiceImpl implements StressTestReportsService {
      * 使用本进程多线程生成测试报告。
      */
     public void generateReportLocal(StressTestReportsEntity stressTestReport, String csvPath, String reportPathDir) {
+        logger.info("使用本进程多线程生成测试报告");
         stressTestUtils.setJmeterProperties();
         LocalReportGenerator generator = null;
         try {
              generator = new LocalReportGenerator(csvPath, null);
+             logger.info("LocalReportGenerator: " + generator);
+            logger.info("LocalReportGenerator: " + generator.toString());
              generator.generate(reportPathDir);
              stressTestReport.setStatus(StressTestUtils.RUN_SUCCESS);
              update(stressTestReport);
@@ -267,6 +280,7 @@ public class StressTestReportsServiceImpl implements StressTestReportsService {
      * 使用Jmeter_home中的命令生成测试报告。
      */
     public void generateReportByScript(StressTestReportsEntity stressTestReport, String csvPath, String reportPathDir) {
+
         //开始执行命令行
         String jmeterHomeBin = stressTestUtils.getJmeterHomeBin();
         String jmeterExc = stressTestUtils.getJmeterExc();
