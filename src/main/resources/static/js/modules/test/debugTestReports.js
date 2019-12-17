@@ -217,7 +217,30 @@ function createReport(reportIds) {
     if (!reportIds) {
         return;
     }
-    confirm('结果文件超过1MB建议直接下载报告查看!', function () {
+    myConfirm('结果文件超过1MB建议直接下载报告查看','取消','确定','1',function(res){
+        console.log(res);
+        if(res.status){
+            //用户点击确定
+            $.ajax({
+                type: "POST",
+                url: baseURL + "test/debugReports/createReport",
+                contentType: "application/json",
+                data: JSON.stringify(numberToArray(reportIds)),
+                success: function (r) {
+                    if (r.code == 0) {
+                        vm.reload();
+                        alert('后台正在异步生成!', function () {
+                        });
+                    } else {
+                        alert(r.msg);
+                    }
+                }
+            });
+        }else {
+            //用户点击取消
+        }
+    });
+    /*confirm('结果文件超过1MB建议直接下载报告查看!', function () {
         $.ajax({
             type: "POST",
             url: baseURL + "test/debugReports/createReport",
@@ -233,7 +256,7 @@ function createReport(reportIds) {
                 }
             }
         });
-    });
+    });*/
 }
 
 function checkStatus(status) {
