@@ -38,7 +38,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import thredds.inventory.MFileFilter;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -59,7 +58,7 @@ public class StressTestFileServiceImpl implements StressTestFileService {
 
     private static final String OS_NAME = System.getProperty("os.name");// $NON-NLS-1$
 
-    private static final String OS_NAME_LC = OS_NAME.toLowerCase(Locale.ENGLISH);
+    private static final String OS_NAME_LC = OS_NAME.toLowerCase(java.util.Locale.ENGLISH);
 
     private static final String JMETER_INSTALLATION_DIRECTORY;
 
@@ -88,7 +87,7 @@ public class StressTestFileServiceImpl implements StressTestFileService {
      * 写成static代码块，也是因为类加载（第一次请求时），才会初始化并初始化一次。这也是符合逻辑的。
      */
     static {
-        final LinkedList<URL> jars = new LinkedList<>();
+        final List<URL> jars = new LinkedList<>();
         final String initial_classpath = System.getProperty(JAVA_CLASS_PATH);
 
         JMETER_INSTALLATION_DIRECTORY = StressTestUtils.getJmeterHome();
@@ -185,8 +184,8 @@ public class StressTestFileServiceImpl implements StressTestFileService {
     }
 
     @Override
-    public void save(StressTestFileEntity stressCaseFile) {
-        stressTestFileDao.save(stressCaseFile);
+    public void save(StressTestFileEntity stressTestFile) {
+        stressTestFileDao.save(stressTestFile);
     }
 
     /**
@@ -220,7 +219,7 @@ public class StressTestFileServiceImpl implements StressTestFileService {
             try {
                 //入库前清理已有配置项
                 testStressThreadSetDao.deleteByFileId(stressTestFile.getFileId());
-                testStressThreadSet.jmsSaveNodes(filePath,stressTestFile);
+                testStressThreadSet.jmxSaveNodes(filePath,stressTestFile);
             } catch (DocumentException e) {
                 e.printStackTrace();
             }
@@ -229,6 +228,7 @@ public class StressTestFileServiceImpl implements StressTestFileService {
 
     @Override
     public void update(StressTestFileEntity stressTestFile) {
+        logger.debug("修改stressTestFile：" + stressTestFile.getFileIdList());
         stressTestFileDao.update(stressTestFile);
     }
 
@@ -270,6 +270,7 @@ public class StressTestFileServiceImpl implements StressTestFileService {
      */
     @Override
     public void updateStatusBatch(StressTestFileEntity stressTestFile) {
+        logger.debug("stressTestFile.getFileIdList: " + stressTestFile.getFileIdList());
         Map<String, Object> map = new HashMap<>();
         map.put("fileIdList",stressTestFile.getFileIdList());
         map.put("reportStatus", stressTestFile.getReportStatus());
@@ -326,7 +327,7 @@ public class StressTestFileServiceImpl implements StressTestFileService {
             StressTestUtils.jMeterEntity4file.remove(fileId);
 
             //删除远程节点的同步文件，如果远程节点比较多，网络不好，执行时间会比较长
-            deleteSlaveFile((long) fileId);
+            deleteSlaveFile((Long) fileId);
         });
 
         stressTestFileDao.deleteBatch(fileIds);
@@ -543,10 +544,10 @@ public class StressTestFileServiceImpl implements StressTestFileService {
                 //改变脚本名称
                 FileServer.getFileServer().setScriptName(jmxFile.getName());
                 //通过反射改变base名称
-                Field baseFiled = FileServer.getFileServer().getClass().getDeclaredField("base");
+                Field baseField = FileServer.getFileServer().getClass().getDeclaredField("base");
                 //设置允许访问
-                baseFiled.setAccessible(true);
-                baseFiled.set(FileServer.getFileServer(),jmxFile.getAbsoluteFile().getParentFile());
+                baseField.setAccessible(true);
+                baseField.set(FileServer.getFileServer(),jmxFile.getAbsoluteFile().getParentFile());
             }
             HashTree jmxTree = SaveService.loadTree(jmxFile);
             logger.info("jmxTree的内容:" + jmxTree.toString());
@@ -600,7 +601,7 @@ public class StressTestFileServiceImpl implements StressTestFileService {
             //后续可能还会有其他文件能得到引用（如文件下载的测试等等），可能还需要扩充次方法。
             ArrayList<String> fileAliaList = new ArrayList<>();
             for (HashTree lht : jmxTree.values()) {
-                fileFileAliaList(fileAliaList,lht);
+                fillFileAliaList(fileAliaList,lht);
             }
             jmeterRunEntity.setFileAliaList(fileAliaList);
 
@@ -609,14 +610,14 @@ public class StressTestFileServiceImpl implements StressTestFileService {
             StressTestUtils.jMeterEntity4file.put(stressTestFile.getFileId(),jmeterRunEntity);
             if (StringUtils.isNotEmpty(slaveStr)) { //分布式的方式启动
                 logger.info("本测试使用分布式方式启动");
-                StringTokenizer st  = new StringTokenizer(slaveStr, ",");//$NON-NLS-1$
+                java.util.StringTokenizer st = new java.util.StringTokenizer(slaveStr, ",");//$NON-NLS-1$
                 List<String> hosts = new LinkedList<>();
                 while (st.hasMoreElements()) {
                     hosts.add((String) st.nextElement());
                 }
                 LocalDistributedRunner localDistributedRunner = new LocalDistributedRunner();
                 localDistributedRunner.setStdout(System.out); // NOSONAR
-                localDistributedRunner.setStderr(System.err); // NOSONAR
+                localDistributedRunner.setStdErr(System.err); // NOSONAR
                 localDistributedRunner.init(hosts,jmxTree,getSlaveAddrWeight());
                 engines.addAll(localDistributedRunner.getEngines());
                 localDistributedRunner.start();
@@ -661,14 +662,14 @@ public class StressTestFileServiceImpl implements StressTestFileService {
      * 将当前脚本所用到的文件保存起来。
      * 目前已知的最常用的有CSVDataSet类型的。
      */
-    public ArrayList fileFileAliaList(ArrayList<String> fileAliaList, HashTree hashTree) {
+    public ArrayList fillFileAliaList(ArrayList<String> fileAliaList, HashTree hashTree) {
         for (Object os : hashTree.keySet()) {
             if (os instanceof CSVDataSet) {
                 //filename通过查看源码，没有发现有变化的地方，所以让其成为关键字。
                 String filename = ((CSVDataSet) os).getPropertyAsString("filename");
                 fileAliaList.add(filename);
             } else if (os instanceof ThreadGroup) {
-                fileFileAliaList(fileAliaList,hashTree.get(os));
+                fillFileAliaList(fileAliaList,hashTree.get(os));
             }
         }
         return fileAliaList;
@@ -684,6 +685,7 @@ public class StressTestFileServiceImpl implements StressTestFileService {
                 Set treeKeys = item.keySet();
                 for (Object key : treeKeys) {
                     if (key instanceof ThreadGroup && ((ThreadGroup) key).getDuration() == 0) {
+                        ((ThreadGroup) key).setProperty(ThreadGroup.SCHEDULER, true);
                         ((ThreadGroup) key).setProperty(ThreadGroup.DURATION,stressTestFile.getDuration());
                     }
                 }
@@ -728,7 +730,7 @@ public class StressTestFileServiceImpl implements StressTestFileService {
      * 停止内核Jmeter-core方式执行的脚本
      */
     @Override
-    public void stopLocal(Long filedId, JmeterRunEntity jmeterRunEntity) {
+    public void stopLocal(Long fileId, JmeterRunEntity jmeterRunEntity) {
         logger.info("停止内核Jmeter-core方式执行的脚本");
         StressTestFileEntity stressTestFile = jmeterRunEntity.getStressTestFile();
         StressTestReportsEntity stressTestReports = jmeterRunEntity.getStressTestReports();
@@ -752,7 +754,7 @@ public class StressTestFileServiceImpl implements StressTestFileService {
         jmeterRunEntity.stop();
 
         //需要将结果收集的部分干掉
-        StressTestUtils.samplingStatCalculator4File.remove(filedId);
+        StressTestUtils.samplingStatCalculator4File.remove(fileId);
     }
 
     /**
@@ -886,7 +888,7 @@ public class StressTestFileServiceImpl implements StressTestFileService {
         try {
             fileSaveMD5 = stressTestUtils.getMd5ByFile(filePath);
         } catch (IOException e) {
-            throw new RRException(stressTestFile.getOriginName() + "生成MD5wenjian !",e);
+            throw new RRException(stressTestFile.getOriginName() + "生成MD5失败 !",e);
         }
 
         //避免跨系统的问题，远端由于都是linux服务器，则文件分隔符统一为/,不然同步文件会报错。
@@ -903,7 +905,7 @@ public class StressTestFileServiceImpl implements StressTestFileService {
         //由于事务性，这个地方不好批量更新。
         update(stressTestFile);
         Map fileQuery = new HashMap<>();
-        fileQuery.put("originName",stressTestFile.getOriginName() + "_slavedId" + slave.getSlaveId());
+        fileQuery.put("originName",stressTestFile.getOriginName() + "_slaveId" + slave.getSlaveId());
         fileQuery.put("slaveId",slave.getSlaveId().toString());
         StressTestFileEntity newStressTestFile = stressTestFileDao.queryObjectForClone(fileQuery);
         if (newStressTestFile == null) {
@@ -914,7 +916,7 @@ public class StressTestFileServiceImpl implements StressTestFileService {
             newStressTestFile.setFileMd5(fileSaveMD5);
             //最重要是保存分布式子节点的ID
             newStressTestFile.setSlaveId(slave.getSlaveId());
-            save(stressTestFile);
+            save(newStressTestFile);
         } else {
             newStressTestFile.setFileMd5(fileSaveMD5);
             update(newStressTestFile);
@@ -1035,7 +1037,7 @@ public class StressTestFileServiceImpl implements StressTestFileService {
         query.put("status", StressTestUtils.ENABLE);
         List<StressTestSlaveEntity> stressTestSlaveList = stressTestSlaveDao.queryList(query);
 
-        Map<String, Integer> resultMap = new HashMap<>();
+        Map<String, Integer> resultMap = new HashMap<String, Integer>();
         for (StressTestSlaveEntity slave : stressTestSlaveList) {
             //本机不包含在内
             if ("127.0.0.1".equals(slave.getIp().trim())) {

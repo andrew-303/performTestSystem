@@ -191,6 +191,7 @@ var vm = new Vue({
             vm.showTask = false;
             vm.title = "配置";
             if (fileIds.length > 1) {
+                console.log("fileIds的长度： " + fileIds.length)
                 vm.stressTestFile.reportStatus = 0;
                 vm.stressTestFile.webchartStatus = 0;
                 vm.stressTestFile.debugStatus = 0;
@@ -198,6 +199,7 @@ var vm = new Vue({
                 vm.stressTestFile.fileIdList = fileIds;
             } else {
                 var fileId = fileIds[0];
+                console.log("fileIds[0]为: " + fileId);
                 $.get(baseURL + "test/stressFile/info/" + fileId, function (r) {
                     if(/^(jmx)$/.test(getExtension(r.stressTestFile.originName).toLowerCase())) {
                         vm.stressTestFile = r.stressTestFile;

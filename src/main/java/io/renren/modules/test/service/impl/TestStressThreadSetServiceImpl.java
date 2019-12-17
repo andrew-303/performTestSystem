@@ -43,7 +43,7 @@ public class TestStressThreadSetServiceImpl implements TestStressThreadSetServic
     }
 
     @Override
-    public List<TestStressThreadSetEntity> queryLsit(Map<String, Object> map) {
+    public List<TestStressThreadSetEntity> queryList(Map<String, Object> map) {
         return testStressThreadSetDao.queryList(map);
     }
 
@@ -87,6 +87,7 @@ public class TestStressThreadSetServiceImpl implements TestStressThreadSetServic
         testStressThreadSetDao.saveBatch(testStressThreadSetList);
     }
 
+
     /**
      * 获取脚本的线程组配置数据入库
      * @throws DocumentException
@@ -95,7 +96,7 @@ public class TestStressThreadSetServiceImpl implements TestStressThreadSetServic
     String uuid_p = "";//线程组主键ID编号
 
     //@Override
-    public void jmsSaveNodes(String filePath, StressTestFileEntity stressTestFile) throws DocumentException {
+    public void jmxSaveNodes(String filePath, StressTestFileEntity stressTestFile) throws DocumentException {
         //解析xml文件
         SAXReader reader = new SAXReader();
         File file = new File(filePath);
@@ -170,7 +171,7 @@ public class TestStressThreadSetServiceImpl implements TestStressThreadSetServic
                     ++k,
                     fileId);
                 tThreadSetEntityList.add(stressThreadSetEntity);
-                System.out.println("---------线程组\"+k+\"-----------");
+                System.out.println("---------线程组"+k+"-----------");
                 if (node.getParent().getName().endsWith("UltimateThreadGroup")) {//jp@gc - Ultimate Thread Group类别
                     //UltimateThreadGroup线程组太特殊，不适合循环逐个配置
                     List<Element> elistElem = node.getParent().elements().get(0).elements("collectionProp");
@@ -250,7 +251,7 @@ public class TestStressThreadSetServiceImpl implements TestStressThreadSetServic
      */
     @Override
     @Transactional
-    public void synchronizeJms(Long fileId) throws DocumentException {
+    public void synchronizeJmx(Long fileId) throws DocumentException {
         SAXReader reader = new SAXReader();
         StressTestFileEntity stressTestFile = stressTestFileDao.queryObject(fileId);
         File file = new File(stressTestUtils.getCasePath() + File.separator + stressTestFile.getFileName());

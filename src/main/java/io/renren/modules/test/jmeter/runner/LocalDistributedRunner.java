@@ -77,7 +77,7 @@ public class LocalDistributedRunner {
             int idx = 0;
             while (idx < addrs.size()) {
                 String address = addrs.get(idx);
-                println("Confituring remote engine: " + address);
+                println("Configuring remote engine: " + address);
 
                 //smooth add
                 //在进程内存内把HashTree即脚本文件的内容修改，主要改两部分，线程数和加载虚拟用户数用时，都是按照比例增加或者缩减。
@@ -162,7 +162,7 @@ public class LocalDistributedRunner {
                 JMeterUtils.reportErrorToUser(e.getMessage(), JMeterUtils.getResString("remote_error_starting")); // $NON-NLS-1$
             }
         }
-        println("Remote engiens have been started");
+        println("Remote engines have been started");
     }
 
     /**
@@ -187,7 +187,7 @@ public class LocalDistributedRunner {
                 errln("Failed to stop test on " + address,e);
             }
         }
-        println("Remote engines have been exited");
+        println("Remote engines have been stopped");
     }
 
     /**
@@ -277,8 +277,8 @@ public class LocalDistributedRunner {
         this.stdout = stdout;
     }
 
-    public void setStderr(PrintStream stderr) {
-        this.stderr = stderr;
+    public void setStdErr(PrintStream stdErr) {
+        this.stderr = stdErr;
     }
 
     private static class SilentOutputStream extends OutputStream {

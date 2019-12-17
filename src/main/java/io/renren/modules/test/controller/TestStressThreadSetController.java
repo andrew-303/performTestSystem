@@ -31,7 +31,7 @@ public class TestStressThreadSetController {
     @RequestMapping("/list")
     @RequiresPermissions("test:teststressthreadset:list")
     public List<TestStressThreadSetEntity> list() {
-        List<TestStressThreadSetEntity> testStressThreadList = testStressThreadSetService.queryLsit(new HashMap<String, Object>());
+        List<TestStressThreadSetEntity> testStressThreadList = testStressThreadSetService.queryList(new HashMap<String, Object>());
 
         return testStressThreadList;
     }
@@ -107,7 +107,7 @@ public class TestStressThreadSetController {
     @RequestMapping("/synchronizeJmx")
     @RequiresPermissions("test:teststressthreadset:synchronizeJmx")
     public R synchronizeJmx(@RequestBody Long fileId) throws DocumentException {
-        testStressThreadSetService.synchronizeJms(fileId);
+        testStressThreadSetService.synchronizeJmx(fileId);
         return R.ok();
     }
 

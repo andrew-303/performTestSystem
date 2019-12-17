@@ -19,7 +19,7 @@ public interface TestStressThreadSetService {
 
     TestStressThreadSetEntity queryObject(String setId);
 
-    List<TestStressThreadSetEntity> queryLsit(Map<String,Object> map);
+    List<TestStressThreadSetEntity> queryList(Map<String,Object> map);
 
     //以文件编号查询脚本的线程组配置信息
     List<TestStressThreadSetEntity> queryListByFileId(Long fileId);
@@ -39,10 +39,10 @@ public interface TestStressThreadSetService {
     /**
      * 从指定脚本获取线程组配置并入库
      */
-    void jmsSaveNodes(String filePath, StressTestFileEntity stressTestFile) throws DocumentException;
+    void jmxSaveNodes(String filePath, StressTestFileEntity stressTestFile) throws DocumentException;
 
     /**
      * 从库中获取线程组配置并同步到指定脚本
      */
-    void synchronizeJms(Long fileId) throws DocumentException;
+    void synchronizeJmx(Long fileId) throws DocumentException;
 }

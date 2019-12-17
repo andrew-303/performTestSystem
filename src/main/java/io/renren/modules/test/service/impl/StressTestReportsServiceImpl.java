@@ -264,7 +264,6 @@ public class StressTestReportsServiceImpl implements StressTestReportsService {
         try {
              generator = new LocalReportGenerator(csvPath, null);
              logger.info("LocalReportGenerator: " + generator);
-            logger.info("LocalReportGenerator: " + generator.toString());
              generator.generate(reportPathDir);
              stressTestReport.setStatus(StressTestUtils.RUN_SUCCESS);
              update(stressTestReport);

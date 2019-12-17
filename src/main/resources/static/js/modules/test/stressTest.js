@@ -6,7 +6,7 @@ $(function () {
             {label: '用例ID', name: 'caseId', width: 50, key: true},
             {label: '名称', name: 'caseName', sortable: false, width: 150,
                 formatter: function (value, options, row) {
-                    return "<a href='/modules/test/stressTestFile.html?CaseID=" + row.caseId + "'>" + value + "</a>";
+                    return "<a href='" + baseURL + "/modules/test/stressTestFile.html?CaseID=" + row.caseId + "'>" + value + "</a>";
                 }
             },
             {label: '添加时间', name: 'addTime', width: 90},

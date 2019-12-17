@@ -81,7 +81,8 @@ import org.slf4j.LoggerFactory;
 public class LocalReportGenerator {
     private static final String REPORTGENERATOR_PROPERTIES = "reportgenerator.properties";
 
-    private static final Logger log = LoggerFactory.getLogger(org.apache.jmeter.report.dashboard.ReportGenerator.class);
+//    private static final Logger log = LoggerFactory.getLogger(org.apache.jmeter.report.dashboard.ReportGenerator.class);
+private static final Logger log = LoggerFactory.getLogger(LocalReportGenerator.class);
 
     private static final boolean CSV_OUTPUT_FORMAT = "csv"
             .equalsIgnoreCase(JMeterUtils.getPropDefault(
@@ -132,22 +133,28 @@ public class LocalReportGenerator {
      */
     public LocalReportGenerator(String resultsFile, ResultCollector resultCollector)
             throws ConfigurationException {
+        log.info("实例化新的报表生成器");
+        log.info("CSV_OUTPUT_FORMAT=" + CSV_OUTPUT_FORMAT);
         if (!CSV_OUTPUT_FORMAT) {
+            log.info("报表生成需要csv输出格式，请选中“jmeter.save.saveservice.output_format”属性");
             throw new IllegalArgumentException(
                     "Report generation requires csv output format, check 'jmeter.save.saveservice.output_format' property");
         }
-
+        log.info("报表生成器将用于分析分隔符: '{}'", CSV_DEFAULT_SEPARATOR);
         log.info("ReportGenerator will use for Parsing the separator: '{}'", CSV_DEFAULT_SEPARATOR);
 
         File file = new File(resultsFile);
+        log.info("resultsFile文件名称为："+file.getName());
         if (resultCollector == null) {
             if (!(file.isFile() && file.canRead())) {
+                log.info("无法读取测试结果文件");
                 throw new IllegalArgumentException(String.format(
                         "Cannot read test results file : %s", file));
             }
             log.info("Will only generate report from results file: {}", resultsFile);
         } else {
             if (file.exists() && file.length() > 0) {
+                log.info("结果文件resultsFile不为空： " + resultsFile);
                 throw new IllegalArgumentException("Results file:"
                         + resultsFile + " is not empty");
             }
@@ -164,6 +171,7 @@ public class LocalReportGenerator {
         log.info("Merging with JMeter properties");
         merged.putAll(JMeterUtils.getJMeterProperties());
         configuration = ReportGeneratorConfiguration.loadFromProperties(merged);
+        log.info("最终configuration:" + configuration);
     }
 
     private static Properties loadProps(File file) {
@@ -212,7 +220,7 @@ public class LocalReportGenerator {
             log.info("Flushing result collector before report Generation");
             resultCollector.flushFile();
         }
-        log.debug("Start report generation");
+        log.info("Start report generation");
 
         File tmpDir = configuration.getTempDirectory();
         boolean tmpDirCreated = createTempDir(tmpDir);
