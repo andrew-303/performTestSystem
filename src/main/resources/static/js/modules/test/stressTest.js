@@ -112,7 +112,7 @@ var vm = new Vue({
             }
 
             myConfirm('确定要删除选中的记录','取消','确定','1',function(res){
-                console.log(res);
+                // console.log(res);
                 if(res.status){
                     //用户点击确定
                     $.ajax({
@@ -187,7 +187,7 @@ var vm = new Vue({
         upload: function () {
             var caseId = getSelectedRow();
             //TODO 1
-            console.log("caseId=" + caseId);
+            // console.log("caseId=" + caseId);
             if (caseId == null) {
                 return;
             }
@@ -258,12 +258,12 @@ function initFileInput(formGropId, url, fileCan, extraData) {
             // actionDelete:'' //取消删除按钮
         }
     }).on('filepreupload', function (event, data, previewId, index) {//上传中
-        console.info(data);
+        // console.info(data);
     }).on("fileuploaded", function (event, data, previewId, index) {    //一个文件上传成功
-        console.log('文件上传成功！' + data);
+        // console.log('文件上传成功！' + data);
     }).on('fileerror', function (event, data, msg) {  //一个文件上传失败
-        console.log('文件上传失败！' + msg);
+        // console.log('文件上传失败！' + msg);
     }).on('filesuccessremove', function(event, id) { //上传时和这里的删除回调时，同一个文件id相同
-        console.log('Uploaded thumbnail successfully removed');
+        // console.log('Uploaded thumbnail successfully removed');
     });
 }

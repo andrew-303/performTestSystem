@@ -218,7 +218,7 @@ function createReport(reportIds) {
         return;
     }
     myConfirm('结果文件超过1MB建议直接下载报告查看','取消','确定','1',function(res){
-        console.log(res);
+        // console.log(res);
         if(res.status){
             //用户点击确定
             $.ajax({

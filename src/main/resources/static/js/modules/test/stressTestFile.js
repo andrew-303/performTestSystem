@@ -191,7 +191,7 @@ var vm = new Vue({
             vm.showTask = false;
             vm.title = "配置";
             if (fileIds.length > 1) {
-                console.log("fileIds的长度： " + fileIds.length)
+                // console.log("fileIds的长度： " + fileIds.length)
                 vm.stressTestFile.reportStatus = 0;
                 vm.stressTestFile.webchartStatus = 0;
                 vm.stressTestFile.debugStatus = 0;
@@ -199,7 +199,7 @@ var vm = new Vue({
                 vm.stressTestFile.fileIdList = fileIds;
             } else {
                 var fileId = fileIds[0];
-                console.log("fileIds[0]为: " + fileId);
+                // console.log("fileIds[0]为: " + fileId);
                 $.get(baseURL + "test/stressFile/info/" + fileId, function (r) {
                     if(/^(jmx)$/.test(getExtension(r.stressTestFile.originName).toLowerCase())) {
                         vm.stressTestFile = r.stressTestFile;
@@ -234,7 +234,7 @@ var vm = new Vue({
             }
 
             myConfirm('确定要删除选中的记录','取消','确定','1',function(res){
-                console.log(res);
+                // console.log(res);
                 if(res.status){
                     //用户点击确定
                     $.ajax({
@@ -280,7 +280,7 @@ var vm = new Vue({
         },
         stopAll: function () {
             myConfirm('确定要停止所有执行中脚本','取消','确定','1',function(res){
-                console.log(res);
+                // console.log(res);
                 if(res.status){
                     //用户点击确定
                     $.ajax({
@@ -547,10 +547,10 @@ var xAxisData = [];
 var fileIdData;
 
 function startInterval(fileId) {
-    console.log("fileId:" + fileId);
+    // console.log("fileId:" + fileId);
     // 如果是多个脚本同时运行，切换监控页面时会发生这种情况。
     if (fileIdData > 0 && fileIdData != fileId) {
-        console.log("如果是多个脚本同时运行，切换监控页面时会发生这种情况");
+        // console.log("如果是多个脚本同时运行，切换监控页面时会发生这种情况");
         clearEcharts();
     }
     fileIdData = fileId;
@@ -561,11 +561,11 @@ function startInterval(fileId) {
             // if (Object.keys(responseTimeMap).length  === 0) {
             //     return;
             // }
-            console.log("responseTimeMap: " + responseTimeMap);
+            // console.log("responseTimeMap: " + responseTimeMap);
 
             // 如果不是正在执行，则不再刷新前端
             if (r.statInfo.runStatus !== 1) {
-                console.log("没有正在执行的测试");
+                // console.log("没有正在执行的测试");
                 return;
             }
 
@@ -577,7 +577,7 @@ function startInterval(fileId) {
             var threadCountsMap = r.statInfo.threadCountsMap;
             var totalCountsMap = r.statInfo.totalCountsMap;
             xAxisData.push(new Date().toLocaleTimeString());
-            console.log("throughputMap: " + throughputMap);
+            // console.log("throughputMap: " + throughputMap);
 
             var responseTimesEChartOption = getOptionLine(responseTimeMap, responseTimeLegendData, responseTimeDataObj, null);
             var getThroughputMapOption = getOptionLine(throughputMap, throughputLegendData, throughputDataObj, null);

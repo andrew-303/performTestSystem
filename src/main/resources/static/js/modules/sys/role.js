@@ -91,7 +91,7 @@ var vm = new Vue({
 			}
 
 			myConfirm('确定要删除选中的记录','取消','确定','1',function(res){
-				console.log(res);
+				// console.log(res);
 				if(res.status){
 					//用户点击确定
 					$.ajax({

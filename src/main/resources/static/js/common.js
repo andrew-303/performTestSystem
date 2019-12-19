@@ -102,7 +102,7 @@ function getSelectedRow() {
         return;
     }
     //TODO 增加日志打印
-    console.log(selectedIDs[0]);
+    // console.log(selectedIDs[0]);
     return selectedIDs[0];
 }
 

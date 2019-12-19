@@ -218,7 +218,7 @@ function createReport(reportIds) {
         return;
     }
     myConfirm('确定要生成测试报告','取消','确定','1',function(res){
-        console.log(res);
+        // console.log(res);
         if(res.status){
             //用户点击确定
             $.ajax({
